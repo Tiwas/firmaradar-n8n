@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>n8n-nodes-firmaradar — norske selskapsdata for arbeidsflyter</title>
+    <meta name="description" content="Bygg n8n-arbeidsflyter mot norske selskapsdata — eierregister, konsern, regnskap, KYC og AML — uten å skrive en eneste linje kode.">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="n8n-nodes-firmaradar — norske selskapsdata for arbeidsflyter">
+    <meta property="og:description" content="Slå opp norske selskaper, eierstrukturer, konsernhierarkier og roller i n8n. Community node fra Firmaradar.">
+    <meta property="og:url" content="https://tiwas.github.io/firmaradar-n8n/">
+    <meta property="og:image" content="https://firmaradar.no/static/img/logo_nobg.png">
+    <meta property="og:site_name" content="Firmaradar">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="n8n-nodes-firmaradar">
+    <meta name="twitter:description" content="Norske selskapsdata for n8n-arbeidsflyter. Apache 2.0.">
+    <meta name="twitter:image" content="https://firmaradar.no/static/img/logo_nobg.png">
+
+    <link rel="icon" type="image/png" href="https://firmaradar.no/static/img/logo_nobg.png">
+    <link rel="canonical" href="https://tiwas.github.io/firmaradar-n8n/">
+
+    <style>
+        :root {
+            --brand: #4f46e5;
+            --brand-strong: #4338ca;
+            --brand-50: #eef2ff;
+            --brand-dark: #1e1b4b;
+            --text: #0f172a;
+            --muted: #64748b;
+            --line: #e2e8f0;
+            --soft-bg: #f8fafc;
+            --bg: #ffffff;
+            --success: #10b981;
+            --n8n-orange: #ea4b71;
+            --code-bg: #0f172a;
+            --code-text: #e2e8f0;
+        }
+        * { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; }
+        html {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top center, rgba(234, 75, 113, 0.12), transparent 28%),
+                linear-gradient(180deg, var(--bg) 0%, var(--bg) 100%);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            color: var(--text);
+            line-height: 1.55;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { color: var(--brand); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .shell { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+        header.site-header {
+            padding: 18px 0;
+            border-bottom: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 30;
+        }
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--brand-dark);
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+        .brand img { height: 36px; width: auto; display: block; }
+        .header-nav {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            font-size: 0.92rem;
+        }
+        .header-nav a { color: var(--text); font-weight: 500; }
+        .header-nav .btn-primary {
+            background: var(--brand);
+            color: #fff !important;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+        .header-nav .btn-primary:hover { background: var(--brand-strong); text-decoration: none; }
+
+        .hero { padding: 72px 0 56px; text-align: center; }
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px;
+            background: rgba(234, 75, 113, 0.1);
+            color: var(--n8n-orange);
+            border-radius: 999px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 18px;
+        }
+        h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            line-height: 1.15;
+            margin: 0 0 18px;
+            color: var(--brand-dark);
+            letter-spacing: -0.02em;
+        }
+        h1 .accent { color: var(--n8n-orange); }
+        .hero-lead {
+            font-size: 1.15rem;
+            color: var(--muted);
+            max-width: 680px;
+            margin: 0 auto 28px;
+        }
+        .cta-row {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.98rem;
+            text-decoration: none;
+            border: 1px solid transparent;
+            transition: transform 0.06s, background 0.15s, border-color 0.15s;
+        }
+        .btn:hover { text-decoration: none; transform: translateY(-1px); }
+        .btn-fill { background: var(--brand); color: #fff; }
+        .btn-fill:hover { background: var(--brand-strong); color: #fff; }
+        .btn-outline {
+            background: #fff;
+            color: var(--text);
+            border-color: var(--line);
+        }
+        .btn-outline:hover { border-color: var(--brand); color: var(--brand); }
+        .badges {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .badges img { height: 22px; }
+
+        section { padding: 56px 0; border-top: 1px solid var(--line); }
+        section h2 {
+            font-size: 1.7rem;
+            color: var(--brand-dark);
+            margin: 0 0 14px;
+            letter-spacing: -0.01em;
+        }
+        section h2 + p.section-lead {
+            color: var(--muted);
+            font-size: 1.02rem;
+            margin: 0 0 28px;
+            max-width: 720px;
+        }
+
+        .install-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 22px;
+            margin-top: 24px;
+        }
+        .step-card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 22px;
+        }
+        .step-card .step-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--brand-50);
+            color: var(--brand-strong);
+            border-radius: 8px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        .step-card h3 {
+            font-size: 1.05rem;
+            margin: 0 0 8px;
+            color: var(--brand-dark);
+        }
+        .step-card p {
+            font-size: 0.92rem;
+            color: var(--muted);
+            margin: 0;
+        }
+        .step-card code {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 2px 7px;
+            border-radius: 5px;
+            font-size: 0.85em;
+        }
+
+        .ops-groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
+            margin-top: 24px;
+        }
+        .ops-group {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 22px;
+        }
+        .ops-group h3 {
+            font-size: 1.05rem;
+            margin: 0 0 14px;
+            color: var(--brand-dark);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ops-group h3 .ico {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--brand-50);
+            color: var(--brand);
+            border-radius: 7px;
+            font-size: 0.95rem;
+        }
+        .ops-list { list-style: none; padding: 0; margin: 0; }
+        .ops-list li {
+            padding: 7px 0;
+            border-bottom: 1px dashed var(--line);
+            font-size: 0.9rem;
+        }
+        .ops-list li:last-child { border-bottom: none; }
+        .ops-list li strong { color: var(--brand-dark); }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 18px;
+            margin-top: 24px;
+        }
+        .workflow-card {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .workflow-card h3 {
+            font-size: 1.1rem;
+            margin: 0 0 6px;
+            color: var(--brand-dark);
+        }
+        .workflow-card .wf-meta {
+            font-size: 0.84rem;
+            color: var(--muted);
+            margin-bottom: 14px;
+        }
+        .workflow-card p { font-size: 0.92rem; color: var(--text); margin: 0; }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .comparison-table th,
+        .comparison-table td {
+            padding: 14px 18px;
+            text-align: left;
+            border-bottom: 1px solid var(--line);
+            font-size: 0.95rem;
+        }
+        .comparison-table th {
+            background: var(--soft-bg);
+            font-weight: 600;
+            color: var(--brand-dark);
+        }
+        .comparison-table tr:last-child td { border-bottom: none; }
+        .comparison-table td:first-child {
+            font-weight: 600;
+            color: var(--brand-dark);
+        }
+
+        .cta-banner {
+            margin: 56px 0 0;
+            padding: 36px 40px;
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
+            color: #fff;
+            border-radius: 16px;
+            text-align: center;
+        }
+        .cta-banner h2 { color: #fff; margin: 0 0 8px; }
+        .cta-banner p {
+            color: rgba(255, 255, 255, 0.85);
+            margin: 0 0 18px;
+            font-size: 1.02rem;
+        }
+        .cta-banner .btn-fill {
+            background: #fff;
+            color: var(--brand-strong) !important;
+        }
+        .cta-banner .btn-fill:hover { background: #f1f5f9; }
+        .cta-banner .btn-outline {
+            background: transparent;
+            color: #fff !important;
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        .cta-banner .btn-outline:hover { border-color: #fff; }
+
+        footer.site-footer {
+            padding: 36px 0 48px;
+            border-top: 1px solid var(--line);
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.88rem;
+            margin-top: 32px;
+        }
+        footer.site-footer a { color: var(--text); margin: 0 8px; }
+        footer.site-footer .footer-brand {
+            font-weight: 600;
+            color: var(--brand-dark);
+            margin-bottom: 8px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="shell header-inner">
+        <a class="brand" href="https://firmaradar.no/">
+            <img src="https://firmaradar.no/static/img/logo_nobg.png" alt="Firmaradar">
+        </a>
+        <nav class="header-nav" aria-label="Hovedmeny">
+            <a href="#installasjon">Installer</a>
+            <a href="#operasjoner">Operasjoner</a>
+            <a href="#arbeidsflyter">Arbeidsflyter</a>
+            <a href="https://firmaradar.no/prising" target="_blank" rel="noopener">Prising</a>
+            <a href="https://github.com/Tiwas/firmaradar-n8n" target="_blank" rel="noopener">GitHub</a>
+            <a href="https://firmaradar.no/min-side/api-keys" class="btn-primary" target="_blank" rel="noopener">Hent API-nøkkel</a>
+        </nav>
+    </div>
+</header>
+
+<section class="hero">
+    <div class="shell">
+        <div class="eyebrow">🔌 n8n Community Node</div>
+        <h1>Norske selskapsdata <span class="accent">i n8n-arbeidsflytene dine</span></h1>
+        <p class="hero-lead">
+            Bygg arbeidsflyter for KYC, konkurs-overvåkning, konsern-due-diligence og kreditt-vurdering
+            uten å skrive en eneste linje kode. 21 operasjoner mot Brønnøysund, Skatteetaten og Firmaradar
+            sin egen analyse-stack.
+        </p>
+        <div class="cta-row">
+            <a class="btn btn-fill" href="#installasjon">Installer i n8n →</a>
+            <a class="btn btn-outline" href="#arbeidsflyter">Se eksempler</a>
+            <a class="btn btn-outline" href="https://github.com/Tiwas/firmaradar-n8n" target="_blank" rel="noopener">⭐ GitHub</a>
+        </div>
+        <div class="badges">
+            <img src="https://img.shields.io/badge/Lisens-Apache_2.0-blue.svg" alt="Apache 2.0">
+            <img src="https://img.shields.io/badge/n8n-community_node-ea4b71.svg" alt="n8n community node">
+            <img src="https://img.shields.io/npm/v/n8n-nodes-firmaradar.svg" alt="npm">
+            <img src="https://img.shields.io/badge/data-norske%20selskaper-9333ea.svg" alt="Norske selskaper">
+        </div>
+    </div>
+</section>
+
+<section id="installasjon">
+    <div class="shell">
+        <h2>Installer på 30 sekunder</h2>
+        <p class="section-lead">
+            n8n community nodes installeres direkte fra n8n-GUI-en. Du trenger ikke
+            tilgang til serveren eller å redigere konfigurasjonsfiler.
+        </p>
+        <div class="install-steps">
+            <div class="step-card">
+                <span class="step-num">1</span>
+                <h3>Åpne Community Nodes</h3>
+                <p>I n8n: <strong>Settings → Community Nodes</strong>. Klikk <strong>Install</strong>.</p>
+            </div>
+            <div class="step-card">
+                <span class="step-num">2</span>
+                <h3>Skriv inn pakkenavnet</h3>
+                <p>Lim inn: <code>n8n-nodes-firmaradar</code>. Godkjenn risiko-bekreftelsen og klikk <strong>Install</strong>.</p>
+            </div>
+            <div class="step-card">
+                <span class="step-num">3</span>
+                <h3>Legg til API-nøkkel</h3>
+                <p>I node-konfigurasjonen: <strong>Credentials → New → Firmaradar API</strong>. Lim inn nøkkelen din fra
+                <a href="https://firmaradar.no/min-side/api-keys" target="_blank" rel="noopener">firmaradar.no</a>.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="operasjoner">
+    <div class="shell">
+        <h2>21 operasjoner i fem grupper</h2>
+        <p class="section-lead">
+            Hver operasjon returnerer et strukturert JSON-objekt med kildehenvisning og ferskhets-stempel.
+            Full skjema-dokumentasjon på
+            <a href="https://firmaradar.no/dokumentasjon">firmaradar.no/dokumentasjon</a>.
+        </p>
+        <div class="ops-groups">
+            <div class="ops-group">
+                <h3><span class="ico">🏢</span> Selskap</h3>
+                <ul class="ops-list">
+                    <li><strong>Search companies</strong> — søk på navn eller orgnr</li>
+                    <li><strong>Get company</strong> — full profil</li>
+                    <li><strong>Get ownership</strong> — konsernhierarki opp og ned</li>
+                    <li><strong>Get roles</strong> — styre, daglig leder, prokura</li>
+                    <li><strong>Get financials</strong> — årsregnskap og nøkkeltall</li>
+                    <li><strong>Get announcements</strong> — BRREG-kunngjøringer</li>
+                    <li><strong>Get signals</strong> — risiko- og KYC-flagg</li>
+                    <li><strong>Find related</strong> — via eier, rolle eller adresse</li>
+                </ul>
+            </div>
+            <div class="ops-group">
+                <h3><span class="ico">👤</span> Person</h3>
+                <ul class="ops-list">
+                    <li><strong>Search persons</strong> — navne-søk med skrivefeil-toleranse</li>
+                    <li><strong>Get person</strong> — profil og fødselsår</li>
+                    <li><strong>Get companies</strong> — eier- og rolle-koblinger</li>
+                    <li><strong>Get roles</strong> — aktive og historiske roller</li>
+                </ul>
+            </div>
+            <div class="ops-group">
+                <h3><span class="ico">⚖️</span> KYC og AML</h3>
+                <ul class="ops-list">
+                    <li><strong>Check AML/PEP</strong> — sanksjonslister og PEP</li>
+                    <li><strong>Get AML score</strong> — strukturert risikoscore 0–100</li>
+                    <li><strong>Get risk score</strong> — generell risiko-vurdering</li>
+                    <li><strong>Check foretak i vanskeligheter</strong> — FIV-status (a–e)</li>
+                </ul>
+            </div>
+            <div class="ops-group">
+                <h3><span class="ico">📈</span> Bransje og overvåkning</h3>
+                <ul class="ops-list">
+                    <li><strong>List companies in NACE</strong> — bransje + geografi</li>
+                    <li><strong>Get recent changes</strong> — siste N dager</li>
+                    <li><strong>Search announcements</strong> — fritekst-søk</li>
+                    <li><strong>Compare companies</strong> — side om side</li>
+                </ul>
+            </div>
+            <div class="ops-group">
+                <h3><span class="ico">🏛️</span> Offentlige data</h3>
+                <ul class="ops-list">
+                    <li><strong>Get konsernstøtte</strong> — NAV-tildelinger og koronastøtte</li>
+                    <li><strong>Get skattelister</strong> — inntekt, formue, skatt</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="arbeidsflyter">
+    <div class="shell">
+        <h2>Tre ferdige arbeidsflyter du kan importere</h2>
+        <p class="section-lead">
+            Lim inn JSON-en i n8n via <strong>Workflows → Import from File</strong> og tilpass til ditt oppsett.
+        </p>
+        <div class="workflow-grid">
+            <div class="workflow-card">
+                <h3>🪪 KYC-onboarding</h3>
+                <p class="wf-meta">CRM-trigger → AML/PEP + eierstruktur + risikoscore → Slack-varsel ved høy risiko</p>
+                <p>Når en ny kunde registrerer seg, kjører automatisk full screening og varsler compliance-teamet
+                hvis risikoscoren overstiger terskelen din.</p>
+            </div>
+            <div class="workflow-card">
+                <h3>🚨 Konkurs-overvåkning</h3>
+                <p class="wf-meta">Daglig cron → sjekk portefølje for konkurssignaler → e-post + Teams-varsel</p>
+                <p>Daglig gjennomgang av selskaper i kundeporteføljen din. Varsler ved foretak-i-vanskeligheter-status
+                eller nye BRREG-kunngjøringer.</p>
+            </div>
+            <div class="workflow-card">
+                <h3>📋 Konsern-due-diligence</h3>
+                <p class="wf-meta">Manuell trigger → konsernhierarki → finansiell rollup → AML på alle nivåer → PDF</p>
+                <p>Gitt et enkelt orgnr, bygg en fullstendig due-diligence-rapport som dekker hele konsernet og
+                eksporterer som PDF for compliance-arkivet.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section>
+    <div class="shell">
+        <h2>n8n eller MCP-server?</h2>
+        <p class="section-lead">
+            Begge pakkene gir tilgang til samme datakilde, men i forskjellige kontekster.
+        </p>
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>&nbsp;</th>
+                    <th>n8n community node</th>
+                    <th>MCP-server</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Bruksområde</td>
+                    <td>Strukturerte arbeidsflyter, scheduling, integrasjoner</td>
+                    <td>AI-agenter (Claude, ChatGPT, Cursor)</td>
+                </tr>
+                <tr>
+                    <td>Installasjon</td>
+                    <td>n8n GUI eller <code>npm install n8n-nodes-firmaradar</code></td>
+                    <td>OAuth-tilkobling eller <code>pip install firmaradar-mcp</code></td>
+                </tr>
+                <tr>
+                    <td>Auth</td>
+                    <td>API-nøkkel via n8n-legitimasjon</td>
+                    <td>OAuth 2.0 eller API-nøkkel</td>
+                </tr>
+                <tr>
+                    <td>Datakilde</td>
+                    <td>Samme Firmaradar API</td>
+                    <td>Samme Firmaradar API</td>
+                </tr>
+                <tr>
+                    <td>Repo</td>
+                    <td><a href="https://github.com/Tiwas/firmaradar-n8n">Tiwas/firmaradar-n8n</a></td>
+                    <td><a href="https://github.com/Tiwas/firmaradar-mcp">Tiwas/firmaradar-mcp</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section>
+    <div class="shell">
+        <div class="cta-banner">
+            <h2>Klar til å bygge arbeidsflyter?</h2>
+            <p>
+                99 kr/mnd i plattformavgift, deretter per-kall-pris. n8n-noden er gratis.
+            </p>
+            <div class="cta-row" style="margin-bottom: 0;">
+                <a class="btn btn-fill" href="https://firmaradar.no/min-side/api-keys" target="_blank" rel="noopener">
+                    Hent API-nøkkel →
+                </a>
+                <a class="btn btn-outline" href="https://firmaradar.no/prising" target="_blank" rel="noopener">
+                    Se prising
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class="site-footer">
+    <div class="shell">
+        <span class="footer-brand">Bygget av Firmaradar AS</span>
+        <a href="https://firmaradar.no/" target="_blank" rel="noopener">firmaradar.no</a> ·
+        <a href="https://firmaradar.no/prising" target="_blank" rel="noopener">Prising</a> ·
+        <a href="https://firmaradar.no/dokumentasjon" target="_blank" rel="noopener">Dokumentasjon</a> ·
+        <a href="https://firmaradar.no/personvern" target="_blank" rel="noopener">Personvern</a> ·
+        <a href="https://github.com/Tiwas/firmaradar-n8n" target="_blank" rel="noopener">GitHub</a> ·
+        <a href="https://github.com/Tiwas/firmaradar-mcp" target="_blank" rel="noopener">MCP-server</a>
+        <p style="margin-top: 14px; font-size: 0.82rem;">
+            Apache 2.0 · Data fra Brønnøysundregistrene og Skatteetaten · Daglig oppdatert
+        </p>
+    </div>
+</footer>
+
+</body>
+</html>
