@@ -1,9 +1,9 @@
 import {
+    IDataObject,
     IExecuteFunctions,
     INodeExecutionData,
     INodeType,
     INodeTypeDescription,
-    NodeConnectionType,
 } from 'n8n-workflow';
 
 /**
@@ -23,8 +23,8 @@ export class FirmaradarBransje implements INodeType {
         subtitle: '={{$parameter["operation"]}}',
         description: 'NACE-oppslag, endringssporing og kunngjøringssøk',
         defaults: { name: 'Firmaradar Bransje' },
-        inputs: [NodeConnectionType.Main],
-        outputs: [NodeConnectionType.Main],
+        inputs: ['main'],
+        outputs: ['main'],
         credentials: [{ name: 'firmaradarApi', required: true }],
         properties: [
             {
@@ -47,7 +47,7 @@ export class FirmaradarBransje implements INodeType {
                 default: '',
                 required: true,
                 displayOptions: { show: { operation: ['listInNace'] } },
-                description: '5-sifret NACE-kode (f.eks. 62.010)',
+                description: '5-sifret NACE-kode (f.eks. 62.010).',
             },
             {
                 displayName: 'Kommune-kode',
@@ -102,7 +102,7 @@ export class FirmaradarBransje implements INodeType {
         for (let i = 0; i < items.length; i++) {
             const operation = this.getNodeParameter('operation', i) as string;
             let path: string;
-            let qs: Record<string, unknown> = {};
+            let qs: IDataObject = {};
 
             switch (operation) {
                 case 'listInNace':
@@ -134,7 +134,7 @@ export class FirmaradarBransje implements INodeType {
                 qs,
                 json: true,
             });
-            returnData.push({ json: response });
+            returnData.push({ json: response as IDataObject });
         }
         return [returnData];
     }

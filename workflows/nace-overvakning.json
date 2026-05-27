@@ -1,0 +1,292 @@
+{
+  "name": "Firmaradar — NACE-overvåkning",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * 1-5"
+            }
+          ]
+        }
+      },
+      "name": "Schedule (hverdager 07:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        260,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "nace",
+              "value": "62.010"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Sett NACE-kode",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000002",
+      "notes": "Bytt ut NACE-koden («62.010» = «Programmeringstjenester») med bransjen du vil overvåke."
+    },
+    {
+      "parameters": {
+        "operation": "listInNace",
+        "nace": "={{ $json.nace }}",
+        "limit": 200
+      },
+      "name": "List selskaper i NACE",
+      "type": "n8n-nodes-firmaradar.firmaradarBransje",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000003",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pakk ut companies-listen til ett item per selskap.\nconst out = [];\nfor (const item of items) {\n  const list = item.json?.companies || item.json?.items || item.json?.results || [];\n  for (const c of list) {\n    out.push({ json: { orgnr: c.orgnr, navn: c.navn || c.name } });\n  }\n}\nreturn out;"
+      },
+      "name": "Pakk ut selskaper",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000004"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000005"
+    },
+    {
+      "parameters": {
+        "operation": "getRecentChanges",
+        "orgnr": "={{ $json.orgnr }}",
+        "days": 1
+      },
+      "name": "Siste endringer",
+      "type": "n8n-nodes-firmaradar.firmaradarBransje",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000006",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.changes || $json.events || []).length }}",
+              "rightValue": "=0",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Har endringer?",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000007"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "name": "Aggregér til digest",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000008"
+    },
+    {
+      "parameters": {
+        "fromEmail": "alerts@firmaradar.no",
+        "toEmail": "compliance@example.no",
+        "subject": "=NACE-overvåkning {{ $('Sett NACE-kode').item.json.nace }} — {{ $json.data.length }} selskaper med endringer i går",
+        "emailFormat": "html",
+        "html": "=<h2>NACE-overvåkning — daglig digest</h2>\n<p>NACE-kode: <strong>{{ $('Sett NACE-kode').item.json.nace }}</strong></p>\n<p>Antall selskaper med endringer siste døgn: <strong>{{ $json.data.length }}</strong></p>\n<ul>\n{% for row in $json.data %}\n  <li><a href=\"https://firmaradar.no/orgnr/{{ row.orgnr }}\">{{ row.navn || row.orgnr }}</a> — {{ (row.changes || row.events || []).length }} endring(er)</li>\n{% endfor %}\n</ul>",
+        "options": {}
+      },
+      "name": "E-post — digest",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2020,
+        300
+      ],
+      "id": "3c000003-0003-4000-8000-000000000009",
+      "credentials": {
+        "smtp": {
+          "id": "smtp-default",
+          "name": "SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule (hverdager 07:00)": {
+      "main": [
+        [
+          {
+            "node": "Sett NACE-kode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sett NACE-kode": {
+      "main": [
+        [
+          {
+            "node": "List selskaper i NACE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List selskaper i NACE": {
+      "main": [
+        [
+          {
+            "node": "Pakk ut selskaper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pakk ut selskaper": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Siste endringer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Siste endringer": {
+      "main": [
+        [
+          {
+            "node": "Har endringer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Har endringer?": {
+      "main": [
+        [
+          {
+            "node": "Aggregér til digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregér til digest": {
+      "main": [
+        [
+          {
+            "node": "E-post — digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "v0-3-0-nace-overvakning",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Daglig schedule (hverdager 07:00) → liste selskaper i en NACE-kode → loop → siste endringer → filtrer på endringer → e-post-digest."
+  },
+  "tags": [
+    {
+      "name": "firmaradar"
+    },
+    {
+      "name": "monitoring"
+    }
+  ]
+}

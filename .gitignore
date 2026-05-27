@@ -8,3 +8,5 @@ dist/
 .idea/
 *.tsbuildinfo
 .npm/
+# pnpm@11+ auto-generated build-script approval prompt — install-time artefakt
+pnpm-workspace.yaml

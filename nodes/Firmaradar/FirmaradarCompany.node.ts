@@ -1,9 +1,9 @@
 import {
+    IDataObject,
     IExecuteFunctions,
     INodeExecutionData,
     INodeType,
     INodeTypeDescription,
-    NodeConnectionType,
 } from 'n8n-workflow';
 
 /**
@@ -35,8 +35,8 @@ export class FirmaradarCompany implements INodeType {
         defaults: {
             name: 'Firmaradar Selskap',
         },
-        inputs: [NodeConnectionType.Main],
-        outputs: [NodeConnectionType.Main],
+        inputs: ['main'],
+        outputs: ['main'],
         credentials: [
             {
                 name: 'firmaradarApi',
@@ -76,7 +76,11 @@ export class FirmaradarCompany implements INodeType {
                 displayName: 'Maks antall treff',
                 name: 'limit',
                 type: 'number',
-                default: 20,
+                typeOptions: {
+                    minValue: 1,
+                },
+                description: 'Max number of results to return',
+                default: 50,
                 displayOptions: { show: { operation: ['search'] } },
             },
 
@@ -191,7 +195,7 @@ export class FirmaradarCompany implements INodeType {
             const operation = this.getNodeParameter('operation', i) as string;
 
             let path: string;
-            let qs: Record<string, unknown> = {};
+            let qs: IDataObject = {};
 
             if (operation === 'search') {
                 const query = this.getNodeParameter('query', i) as string;
@@ -245,7 +249,7 @@ export class FirmaradarCompany implements INodeType {
                 json: true,
             });
 
-            returnData.push({ json: response });
+            returnData.push({ json: response as IDataObject });
         }
 
         return [returnData];

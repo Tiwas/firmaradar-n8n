@@ -1,0 +1,363 @@
+{
+  "name": "Firmaradar — Due-diligence-rapport",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Manuell trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        260,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000001"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "orgnr",
+              "value": "999999999"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Sett rot-orgnr",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000002",
+      "notes": "Bytt ut «999999999» med orgnr-et du vil due-diligence-e."
+    },
+    {
+      "parameters": {
+        "operation": "getOwnership",
+        "orgnr": "={{ $json.orgnr }}",
+        "direction": "down",
+        "depth": 5
+      },
+      "name": "Bygg konsernhierarki",
+      "type": "n8n-nodes-firmaradar.firmaradarCompany",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000003",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flat ut konsern-treet til ett item per selskap.\n// Inngang: Ownership-respons fra Firmaradar — Selskap.\n// Utgang: én rad per node i hierarkiet, klar for SplitInBatches.\nconst out = [];\n\nfunction walk(node, depth) {\n  if (!node || typeof node !== 'object') return;\n  out.push({\n    json: {\n      depth,\n      orgnr: node.orgnr,\n      navn: node.navn || node.name,\n      andel: node.andel ?? null,\n    },\n  });\n  const children = node.children || node.barn || [];\n  if (Array.isArray(children)) {\n    for (const child of children) walk(child, depth + 1);\n  }\n}\n\nfor (const item of items) {\n  const payload = item.json;\n  const root = payload.root || payload.down || payload;\n  walk(root, 0);\n}\n\nreturn out;"
+      },
+      "name": "Flat ut hierarki",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000004"
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "name": "SplitInBatches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000005"
+    },
+    {
+      "parameters": {
+        "operation": "getFinancials",
+        "orgnr": "={{ $json.orgnr }}"
+      },
+      "name": "Regnskap",
+      "type": "n8n-nodes-firmaradar.firmaradarCompany",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        180
+      ],
+      "id": "2b000002-0002-4000-8000-000000000006",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "checkAmlPep",
+        "orgnr": "={{ $json.orgnr }}",
+        "purpose": "kyc_review"
+      },
+      "name": "AML/PEP",
+      "type": "n8n-nodes-firmaradar.firmaradarKyc",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000007",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getKonsernstotte",
+        "orgnr": "={{ $json.orgnr }}",
+        "flatten": false
+      },
+      "name": "Konsernstøtte",
+      "type": "n8n-nodes-firmaradar.firmaradarOffentlig",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        420
+      ],
+      "id": "2b000002-0002-4000-8000-000000000008",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "name": "Merge per node",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1620,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-000000000009"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Slå sammen regnskap, AML og konsernstøtte til én rad per selskap\n// klar for Google Sheets.\nconst rows = [];\nfor (const item of items) {\n  const j = item.json || {};\n  const reg = j.regnskap || j.financials || {};\n  const aml = j.aml || j.aml_check || {};\n  const stotte = j.selskap_stotte || j.stotte || {};\n  rows.push({\n    json: {\n      orgnr: j.orgnr,\n      navn: j.navn,\n      depth: j.depth ?? null,\n      omsetning_nok: reg.driftsinntekter ?? reg.omsetning_nok ?? null,\n      resultat_nok: reg.aarsresultat ?? reg.resultat_nok ?? null,\n      aml_treff: Array.isArray(aml.matches) ? aml.matches.length : 0,\n      stotte_total_nok: stotte.total_belop_nok ?? 0,\n      stotte_innovasjon_norge: stotte.innovasjon_norge ?? 0,\n      stotte_skattefunn: stotte.skattefunn ?? 0,\n      stotte_andre: stotte.andre ?? 0,\n    },\n  });\n}\nreturn rows;"
+      },
+      "name": "Form rad for Sheets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-00000000000a"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Due Diligence",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "name": "Google Sheets — append",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        2080,
+        300
+      ],
+      "id": "2b000002-0002-4000-8000-00000000000b",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-default",
+          "name": "Google Sheets"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manuell trigger": {
+      "main": [
+        [
+          {
+            "node": "Sett rot-orgnr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sett rot-orgnr": {
+      "main": [
+        [
+          {
+            "node": "Bygg konsernhierarki",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bygg konsernhierarki": {
+      "main": [
+        [
+          {
+            "node": "Flat ut hierarki",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flat ut hierarki": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SplitInBatches": {
+      "main": [
+        [
+          {
+            "node": "Regnskap",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AML/PEP",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Konsernstøtte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Regnskap": {
+      "main": [
+        [
+          {
+            "node": "Merge per node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AML/PEP": {
+      "main": [
+        [
+          {
+            "node": "Merge per node",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Konsernstøtte": {
+      "main": [
+        [
+          {
+            "node": "Merge per node",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge per node": {
+      "main": [
+        [
+          {
+            "node": "Form rad for Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form rad for Sheets": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets — append",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets — append": {
+      "main": [
+        [
+          {
+            "node": "SplitInBatches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "v0-3-0-due-diligence-rapport",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Manuell trigger → bygg konsernhierarki → loop over hver node → finansrollup + AML + konsernstøtte → samle i Google Sheets."
+  },
+  "tags": [
+    {
+      "name": "firmaradar"
+    },
+    {
+      "name": "due-diligence"
+    }
+  ]
+}

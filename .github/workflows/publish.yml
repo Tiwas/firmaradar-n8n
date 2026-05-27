@@ -1,0 +1,98 @@
+# Publiser n8n-nodes-firmaradar til npm med provenance via OIDC.
+#
+# Trigget når en tag på formen vMAJOR.MINOR.PATCH (eller .PATCH-suffix)
+# pushes til repoet. CI gjør lint + build + publish; selve publish-
+# steget bruker GitHub Actions OIDC sammen med `npm publish --provenance
+# --access public`. Du trenger derfor IKKE `NPM_TOKEN` som secret hvis
+# OIDC-koblingen mellom Tiwas/firmaradar-n8n og npm-org `firmaradar` er
+# satt opp. Tokenet brukes kun som fallback hvis OIDC ikke er
+# konfigurert ennå (se README under «npm-publisering»).
+#
+# Krav som må være på plass før første publish kan kjøre:
+#   1. Pakkenavnet `n8n-nodes-firmaradar` er reservert på npm-org
+#      `firmaradar`.
+#   2. Repoet `Tiwas/firmaradar-n8n` er koblet som «Trusted Publisher»
+#      mot npm-pakken (Profile → Access Tokens → Trusted Publishers).
+#   3. (Fallback) `NPM_TOKEN`-secret er satt på repoet hvis OIDC ennå
+#      ikke er aktivert.
+#
+# Status (2026-05-27): Denne workflowen lever foreløpig i private-repo-
+# kopien `tools/n8n_nodes/`. Når Lars synker pakken til
+# `Tiwas/firmaradar-n8n` via `scripts/sync_n8n_public.sh`, blir filen
+# liggende i public-repo der GitHub Actions faktisk kan trigge på tag.
+
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Kjør npm publish med --dry-run (ingen faktisk publisering)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  id-token: write  # nødvendig for npm provenance via OIDC
+
+jobs:
+  publish:
+    name: Build, lint, publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org/'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Lint (prepublish-strict)
+        run: pnpm lint -c .eslintrc.prepublish.js nodes credentials package.json
+
+      - name: Verify version matches tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::package.json version ($PKG_VERSION) != tag ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "Version $PKG_VERSION matches tag v$TAG_VERSION"
+
+      - name: Publish (dry-run)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
+        run: npm publish --provenance --access public --dry-run
+
+      - name: Publish to npm
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+
+      - name: Create GitHub release notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body_path: CHANGELOG.md

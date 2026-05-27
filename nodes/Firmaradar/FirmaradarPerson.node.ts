@@ -1,9 +1,9 @@
 import {
+    IDataObject,
     IExecuteFunctions,
     INodeExecutionData,
     INodeType,
     INodeTypeDescription,
-    NodeConnectionType,
 } from 'n8n-workflow';
 
 /**
@@ -22,8 +22,8 @@ export class FirmaradarPerson implements INodeType {
         subtitle: '={{$parameter["operation"]}}',
         description: 'Slå opp norske personer, deres roller og eierskap',
         defaults: { name: 'Firmaradar Person' },
-        inputs: [NodeConnectionType.Main],
-        outputs: [NodeConnectionType.Main],
+        inputs: ['main'],
+        outputs: ['main'],
         credentials: [{ name: 'firmaradarApi', required: true }],
         properties: [
             {
@@ -69,7 +69,7 @@ export class FirmaradarPerson implements INodeType {
         for (let i = 0; i < items.length; i++) {
             const operation = this.getNodeParameter('operation', i) as string;
             let path: string;
-            let qs: Record<string, unknown> = {};
+            let qs: IDataObject = {};
 
             if (operation === 'search') {
                 path = '/api/v1/search/persons';
@@ -97,7 +97,7 @@ export class FirmaradarPerson implements INodeType {
                 qs,
                 json: true,
             });
-            returnData.push({ json: response });
+            returnData.push({ json: response as IDataObject });
         }
         return [returnData];
     }

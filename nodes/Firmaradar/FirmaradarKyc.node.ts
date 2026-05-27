@@ -1,9 +1,9 @@
 import {
+    IDataObject,
     IExecuteFunctions,
     INodeExecutionData,
     INodeType,
     INodeTypeDescription,
-    NodeConnectionType,
 } from 'n8n-workflow';
 
 /**
@@ -22,8 +22,8 @@ export class FirmaradarKyc implements INodeType {
         subtitle: '={{$parameter["operation"]}}',
         description: 'AML/PEP-screening, risikoscoring og foretak-i-vanskeligheter-sjekk',
         defaults: { name: 'Firmaradar KYC' },
-        inputs: [NodeConnectionType.Main],
-        outputs: [NodeConnectionType.Main],
+        inputs: ['main'],
+        outputs: ['main'],
         credentials: [{ name: 'firmaradarApi', required: true }],
         properties: [
             {
@@ -95,30 +95,24 @@ export class FirmaradarKyc implements INodeType {
                     });
                     break;
 
-                case 'getAmlScore': {
-                    // Alternativ A (to-kall): generer rapport, deretter hent score
-                    const generated = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
+                case 'getAmlScore':
+                    // v0.3: POST /api/v1/aml/score utfører to-kall-flyt server-side
+                    // og returnerer strukturert rapport-payload med score, level og factors.
+                    response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
                         method: 'POST',
-                        url: `${baseUrl}/ext/aml_rapport/generer`,
+                        url: `${baseUrl}/api/v1/aml/score`,
                         body: {
                             orgnr,
                             purpose: this.getNodeParameter('purpose', i),
                         },
                         json: true,
                     });
-                    const rapportId = (generated as { rapport_id: string }).rapport_id;
-                    response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
-                        method: 'GET',
-                        url: `${baseUrl}/ext/aml_rapport/rapport/${rapportId}`,
-                        json: true,
-                    });
                     break;
-                }
 
                 case 'getRiskScore':
                     response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
                         method: 'GET',
-                        url: `${baseUrl}/ext/risikoscoring/score/${orgnr}`,
+                        url: `${baseUrl}/api/v1/risikoscoring/score/${orgnr}`,
                         json: true,
                     });
                     break;
@@ -126,7 +120,7 @@ export class FirmaradarKyc implements INodeType {
                 case 'checkFiv':
                     response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
                         method: 'GET',
-                        url: `${baseUrl}/ext/foretak_i_vanskeligheter/assess/${orgnr}`,
+                        url: `${baseUrl}/api/v1/fiv/assess/${orgnr}`,
                         json: true,
                     });
                     break;
@@ -135,7 +129,7 @@ export class FirmaradarKyc implements INodeType {
                     throw new Error(`Ukjent operasjon: ${operation}`);
             }
 
-            returnData.push({ json: response as Record<string, unknown> });
+            returnData.push({ json: response as IDataObject });
         }
         return [returnData];
     }

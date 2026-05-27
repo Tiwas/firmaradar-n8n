@@ -1,0 +1,288 @@
+{
+  "name": "Firmaradar — KYC-onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "kyc-onboarding",
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "name": "Webhook (CRM)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [
+        260,
+        300
+      ],
+      "id": "1a000001-0001-4000-8000-000000000001",
+      "webhookId": "kyc-onboarding-webhook"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "orgnr",
+              "value": "={{ $json.body.orgnr || $json.orgnr }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Pakk ut orgnr",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        460,
+        300
+      ],
+      "id": "1a000001-0001-4000-8000-000000000002"
+    },
+    {
+      "parameters": {
+        "operation": "checkAmlPep",
+        "orgnr": "={{ $json.orgnr }}",
+        "purpose": "kyc_onboarding"
+      },
+      "name": "AML/PEP-screening",
+      "type": "n8n-nodes-firmaradar.firmaradarKyc",
+      "typeVersion": 1,
+      "position": [
+        680,
+        180
+      ],
+      "id": "1a000001-0001-4000-8000-000000000003",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getRiskScore",
+        "orgnr": "={{ $('Pakk ut orgnr').item.json.orgnr }}"
+      },
+      "name": "Risikoscore",
+      "type": "n8n-nodes-firmaradar.firmaradarKyc",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "id": "1a000001-0001-4000-8000-000000000004",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getOwnership",
+        "orgnr": "={{ $('Pakk ut orgnr').item.json.orgnr }}",
+        "direction": "both"
+      },
+      "name": "Hent eierskap",
+      "type": "n8n-nodes-firmaradar.firmaradarCompany",
+      "typeVersion": 1,
+      "position": [
+        680,
+        420
+      ],
+      "id": "1a000001-0001-4000-8000-000000000005",
+      "credentials": {
+        "firmaradarApi": {
+          "id": "firmaradar-api",
+          "name": "Firmaradar API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "name": "Samle resultater",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        920,
+        300
+      ],
+      "id": "1a000001-0001-4000-8000-000000000006"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Risikoscore').item.json.level }}",
+              "rightValue": "=hoy",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ $('Risikoscore').item.json.level }}",
+              "rightValue": "=kritisk",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "name": "Risiko = høy eller kritisk?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1140,
+        300
+      ],
+      "id": "1a000001-0001-4000-8000-000000000007"
+    },
+    {
+      "parameters": {
+        "channel": "#kyc-alerts",
+        "text": "=:rotating_light: *KYC-onboarding-varsel* — risiko: {{ $('Risikoscore').item.json.level }}\nOrgnr: `{{ $('Pakk ut orgnr').item.json.orgnr }}`\nScore: {{ $('Risikoscore').item.json.score }}/100\nAML-treff: {{ $('AML/PEP-screening').item.json.matches ? $('AML/PEP-screening').item.json.matches.length : 0 }}\nÅpne i Firmaradar: https://firmaradar.no/orgnr/{{ $('Pakk ut orgnr').item.json.orgnr }}",
+        "otherOptions": {}
+      },
+      "name": "Slack — compliance-kanal",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        1380,
+        220
+      ],
+      "id": "1a000001-0001-4000-8000-000000000008",
+      "credentials": {
+        "slackApi": {
+          "id": "slack-default",
+          "name": "Slack — compliance"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook (CRM)": {
+      "main": [
+        [
+          {
+            "node": "Pakk ut orgnr",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pakk ut orgnr": {
+      "main": [
+        [
+          {
+            "node": "AML/PEP-screening",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Risikoscore",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Hent eierskap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AML/PEP-screening": {
+      "main": [
+        [
+          {
+            "node": "Samle resultater",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risikoscore": {
+      "main": [
+        [
+          {
+            "node": "Samle resultater",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Hent eierskap": {
+      "main": [
+        [
+          {
+            "node": "Samle resultater",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Samle resultater": {
+      "main": [
+        [
+          {
+            "node": "Risiko = høy eller kritisk?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Risiko = høy eller kritisk?": {
+      "main": [
+        [
+          {
+            "node": "Slack — compliance-kanal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "v0-3-0-kyc-onboarding",
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "description": "Webhook fra CRM → orgnr → AML/PEP + risikoscore + eierstruktur. Slack-varsel hvis risiko-nivå er høy eller kritisk."
+  },
+  "tags": [
+    {
+      "name": "firmaradar"
+    },
+    {
+      "name": "kyc"
+    }
+  ]
+}

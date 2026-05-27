@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-firmaradar",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "n8n community node for Firmaradar — slå opp norske selskaper, eierstrukturer, konsern, roller, regnskap og AML i arbeidsflytene dine.",
   "keywords": [
     "n8n-community-node-package",
@@ -33,9 +33,8 @@
     "node": ">=18.10",
     "pnpm": ">=8"
   },
-  "main": "index.js",
   "scripts": {
-    "build": "tsc && gulp build:icons",
+    "build": "tsc && gulp build:icons && node -e \"require('fs').rmSync('dist/tsconfig.tsbuildinfo', { force: true })\"",
     "dev": "tsc --watch",
     "format": "prettier nodes credentials --write",
     "lint": "eslint nodes credentials package.json",
@@ -45,6 +44,11 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/",
+    "provenance": true
+  },
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
@@ -64,11 +68,11 @@
     "eslint": "^8.56.0",
     "eslint-plugin-n8n-nodes-base": "^1.16.0",
     "gulp": "^5.0.0",
-    "n8n-workflow": "*",
+    "n8n-workflow": "^1.84.0",
     "prettier": "^3.2.0",
     "typescript": "^5.3.0"
   },
   "peerDependencies": {
-    "n8n-workflow": "*"
+    "n8n-workflow": ">=1.0 <2.0"
   }
 }

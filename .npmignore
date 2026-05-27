@@ -1,0 +1,42 @@
+# n8n-nodes-firmaradar — npm publish whitelist
+#
+# Vi bruker `package.json#files: ["dist"]` som hovedfilter, men beholder
+# en eksplisitt .npmignore for å garantere at TypeScript-kilder, dev-
+# konfig, workflows og docs ALDRI havner i tarballen — uansett om noen
+# senere skulle endre `files`-feltet.
+
+# Kilder (skal ikke ut til npm — kun den kompilerte dist/ skal med)
+nodes/
+credentials/
+tsconfig.json
+tsconfig*.json
+gulpfile.js
+
+# Workflows + docs hører til repoet, ikke til npm-tarballen
+workflows/
+docs/
+scripts/
+
+# Lint/format-konfig
+.eslintrc.js
+.eslintrc.prepublish.js
+.prettierrc
+.prettierrc.*
+
+# CI-konfig
+.github/
+
+# Lokale dev-artefakter
+*.tsbuildinfo
+dist/tsconfig.tsbuildinfo
+dist/**/*.tsbuildinfo
+.env
+.env.*
+.vscode/
+.idea/
+.DS_Store
+*.log
+.npm/
+
+# Annet repo-støy
+CHANGELOG.md.bak

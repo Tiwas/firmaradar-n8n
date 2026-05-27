@@ -45,7 +45,10 @@ export class FirmaradarApi implements ICredentialType {
         properties: {
             headers: {
                 Authorization: '=Bearer {{$credentials.apiKey}}',
-                'X-MCP-Client': 'n8n-nodes-firmaradar',
+                // n8n er ikke en MCP-agent — bruk dedikert klient-header
+                // slik at rate-limit-tier og audit-trail på backend skiller
+                // n8n-trafikk fra MCP-agent-trafikk (#131, v0.3.0).
+                'X-FR-Client': 'n8n',
             },
         },
     };
