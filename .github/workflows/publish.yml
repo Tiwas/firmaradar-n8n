@@ -36,7 +36,7 @@ on:
         default: 'false'
 
 permissions:
-  contents: read
+  contents: write  # nødvendig for "Create GitHub release notes"-steget
   id-token: write  # nødvendig for npm provenance via OIDC
 
 jobs:
