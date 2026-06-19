@@ -7,6 +7,18 @@ og prosjektet bruker [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.4.0] — 2026-06-19
+
+### Added
+
+- **`Hent selskap` — valgfrie tilleggsfelt (`fields`).** Ny multi-select som
+  beriker selskapsprofilen med opt-in-seksjoner: konsernstruktur, eiere
+  (virksomhet/alle), offentlig støtte, BRREG-tildelinger, **immaterielle
+  rettigheter (patenter/varemerker/design fra Patentstyret)**, nylige endringer
+  og regnskaps-nøkkeltall. Speiler `fields`-parameteren i MCP/REST-API-et.
+
+---
+
 ## [0.3.0] — 2026-05-27
 
 Første offentlige release på npm. Speiler MCP v0.3 (#130) og inneholder
@@ -98,5 +110,6 @@ overskredet av 0.3.0 i samme commit-rekke.
 
 ---
 
+[0.4.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.3.0
 [0.1.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.1.0
