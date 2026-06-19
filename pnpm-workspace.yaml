@@ -5,5 +5,17 @@
 # Tvinger form-data >= 4.0.4 for å lukke GHSA-fjxv-7rqg-78g4 (critical):
 # form-data < 4.0.4 bruker en usikker random-funksjon for å velge
 # multipart-boundary. Pakken dras inn transitivt via n8n-workflow.
+#
+# `packages` må deklareres eksplisitt: pnpm v10+ behandler tilstedeværelsen
+# av denne fila som en workspace-rot og feiler `pnpm store path` (brukt av
+# setup-node sin `cache: pnpm`) med «packages field missing or empty» uten
+# den. Vi er én pakke i rota, derfor «.».
+packages:
+  - '.'
+# Vi trenger ikke postinstall-build-scriptet til denne dev-pluginen; eksplisitt
+# `false` hindrer pnpm v10+ i å avbryte install med ERR_PNPM_IGNORED_BUILDS
+# (ellers feiler CI sitt install-steg).
+allowBuilds:
+  eslint-plugin-n8n-nodes-base: false
 overrides:
   form-data@>=4.0.0 <4.0.4: ^4.0.4
