@@ -55,6 +55,7 @@ export class FirmaradarCompany implements INodeType {
                     { name: 'Hent eierskap', value: 'getOwnership', action: 'Hent konsernhierarki opp og ned' },
                     { name: 'Hent roller', value: 'getRoles', action: 'Hent styre, daglig leder, prokura' },
                     { name: 'Hent regnskap', value: 'getFinancials', action: 'Hent årsregnskap og nøkkeltall' },
+                    { name: 'Hent IP-portefølje', value: 'getIp', action: 'Hent patenter varemerker og design fra Patentstyret' },
                     { name: 'Hent kunngjøringer', value: 'getAnnouncements', action: 'Hent BRREG-kunngjøringer' },
                     { name: 'Hent signaler', value: 'getSignals', action: 'Hent risiko- og KYC-flagg' },
                     { name: 'Finn relaterte', value: 'findRelated', action: 'Finn relaterte selskaper' },
@@ -253,6 +254,11 @@ export class FirmaradarCompany implements INodeType {
                         path = `/api/v1/company/${orgnr}/financials`;
                         qs = { years: this.getNodeParameter('years', i) };
                         break;
+                    case 'getIp':
+                        // IP-portefølje fra Patentstyret (patenter/varemerker/design).
+                        path = `/api/v1/company/${orgnr}`;
+                        qs = { ip: 1 };
+                        break;
                     case 'getAnnouncements':
                         path = `/api/v1/company/${orgnr}/announcements`;
                         break;
@@ -275,7 +281,11 @@ export class FirmaradarCompany implements INodeType {
                 json: true,
             });
 
-            returnData.push({ json: response as IDataObject });
+            // getIp returnerer kun IP-porteføljen (ip_rettigheter), ikke hele profilen.
+            const json = (operation === 'getIp' && response && typeof response === 'object'
+                ? (((response as IDataObject).ip_rettigheter as IDataObject) ?? (response as IDataObject))
+                : (response as IDataObject));
+            returnData.push({ json });
         }
 
         return [returnData];

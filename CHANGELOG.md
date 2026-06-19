@@ -7,6 +7,18 @@ og prosjektet bruker [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [0.5.0] — 2026-06-19
+
+### Added
+
+- **`Hent IP-portefølje` (getIp) — egen operasjon på Firmaradar — Selskap.**
+  Henter selskapets immaterielle rettigheter (patenter, varemerker og design fra
+  Patentstyret) som en dedikert handling og returnerer `ip_rettigheter` direkte.
+  Gjør IP like oppdagbar som regnskap/roller/eierskap i stedet for å være en
+  `fields`-verdi på `Hent selskap`.
+
+---
+
 ## [0.4.0] — 2026-06-19
 
 ### Added
@@ -110,6 +122,7 @@ overskredet av 0.3.0 i samme commit-rekke.
 
 ---
 
+[0.5.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.5.0
 [0.4.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.4.0
 [0.3.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.3.0
 [0.1.0]: https://github.com/Tiwas/firmaradar-n8n/releases/tag/v0.1.0

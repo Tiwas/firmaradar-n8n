@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-firmaradar",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "n8n community node for Firmaradar — slå opp norske selskaper, eierstrukturer, konsern, roller, regnskap og AML i arbeidsflytene dine.",
   "keywords": [
     "n8n-community-node-package",
