@@ -8,5 +8,8 @@ dist/
 .idea/
 *.tsbuildinfo
 .npm/
-# pnpm@11+ auto-generated build-script approval prompt — install-time artefakt
-pnpm-workspace.yaml
+# pnpm-workspace.yaml var tidligere ignorert (kun et build-script-approval-
+# artefakt), men er nå tracket fordi den huser `overrides:` (pnpm@11+ leser
+# ikke lenger overrides fra package.json). Lockfilen lagrer en kopi av
+# overrides, så `pnpm install --frozen-lockfile` (CI) FEILER med
+# ERR_PNPM_LOCKFILE_CONFIG_MISMATCH hvis fila mangler. Må derfor committes.

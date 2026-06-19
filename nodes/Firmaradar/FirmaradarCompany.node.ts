@@ -108,6 +108,27 @@ export class FirmaradarCompany implements INodeType {
                 description: '9-sifret norsk organisasjonsnummer',
             },
 
+            // ── Hent selskap: valgfrie tilleggsfelt (fields) ───────────
+            {
+                displayName: 'Inkluder tilleggsfelt',
+                name: 'fields',
+                type: 'multiOptions',
+                options: [
+                    { name: 'Konsernstruktur', value: 'group' },
+                    { name: 'Eiere', value: 'owners' },
+                    { name: 'Eiere (virksomhet)', value: 'business_owners' },
+                    { name: 'Eiere (alle, inkl. personer)', value: 'full_owners' },
+                    { name: 'Offentlig støtte', value: 'grants' },
+                    { name: 'BRREG-tildelinger', value: 'brreg_grants' },
+                    { name: 'Immaterielle rettigheter (Patentstyret)', value: 'ip' },
+                    { name: 'Nylige endringer', value: 'changes' },
+                    { name: 'Nøkkeltall (regnskap)', value: 'financial_metrics' },
+                ],
+                default: [],
+                displayOptions: { show: { operation: ['get'] } },
+                description: 'Ekstra seksjoner å berike profilen med. «Immaterielle rettigheter» henter patenter, varemerker og design fra Patentstyret.',
+            },
+
             // ── Eierskap-spesifikke parametre ──────────────────────────
             {
                 displayName: 'Retning',
@@ -205,9 +226,14 @@ export class FirmaradarCompany implements INodeType {
             } else {
                 const orgnr = this.getNodeParameter('orgnr', i) as string;
                 switch (operation) {
-                    case 'get':
+                    case 'get': {
                         path = `/api/v1/company/${orgnr}`;
+                        const fields = this.getNodeParameter('fields', i, []) as string[];
+                        if (fields.length) {
+                            qs = { fields: fields.join(',') };
+                        }
                         break;
+                    }
                     case 'getOwnership':
                         path = `/api/v1/company/${orgnr}/ownership`;
                         qs = {
