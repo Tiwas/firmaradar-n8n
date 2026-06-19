@@ -33,6 +33,11 @@
     "node": ">=18.10",
     "pnpm": ">=8"
   },
+  "pnpm": {
+    "overrides": {
+      "form-data@>=4.0.0 <4.0.4": "^4.0.4"
+    }
+  },
   "scripts": {
     "build": "tsc && gulp build:icons && node -e \"require('fs').rmSync('dist/tsconfig.tsbuildinfo', { force: true })\"",
     "dev": "tsc --watch",
