@@ -1,25 +1,29 @@
 # Publiser n8n-nodes-firmaradar til npm med provenance via OIDC.
 #
 # Trigget når en tag på formen vMAJOR.MINOR.PATCH (eller .PATCH-suffix)
-# pushes til repoet. CI gjør lint + build + publish; selve publish-
-# steget bruker GitHub Actions OIDC sammen med `npm publish --provenance
-# --access public`. Du trenger derfor IKKE `NPM_TOKEN` som secret hvis
-# OIDC-koblingen mellom Tiwas/firmaradar-n8n og npm-org `firmaradar` er
-# satt opp. Tokenet brukes kun som fallback hvis OIDC ikke er
-# konfigurert ennå (se README under «npm-publisering»).
+# pushes til repoet. CI gjør lint + build + publish, og publish-steget
+# autentiserer med GitHub Actions OIDC — ingen npm-token involvert.
 #
-# Krav som må være på plass før første publish kan kjøre:
-#   1. Pakkenavnet `n8n-nodes-firmaradar` er reservert på npm-org
-#      `firmaradar`.
-#   2. Repoet `Tiwas/firmaradar-n8n` er koblet som «Trusted Publisher»
-#      mot npm-pakken (Profile → Access Tokens → Trusted Publishers).
-#   3. (Fallback) `NPM_TOKEN`-secret er satt på repoet hvis OIDC ennå
-#      ikke er aktivert.
+# Krav som MÅ være på plass (alle verifisert 2026-07-26):
+#   1. Pakken `n8n-nodes-firmaradar` eies av npm-brukeren `tiwas`.
+#   2. `Tiwas/firmaradar-n8n` + workflow-fila `publish.yml` er registrert som
+#      Trusted Publisher på pakken (npm → pakke → Settings), med tillatelsen
+#      `npm publish`. Miljø-feltet står TOMT fordi denne jobben ikke bruker et
+#      GitHub Actions environment — setter man et navn der, matcher ikke
+#      OIDC-tokenet og publiseringen avvises.
+#   3. Node >= 22.14.0 OG npm >= 11.5.1. Dette er lett å overse: workflowen
+#      kjørte tidligere Node 20 → npm 10.8.2, og da faller npm tilbake til
+#      token-auth. Se stegene under.
+#   4. pnpm 11+ (ikke 9) — overridene som lukker Dependabot-varslene ligger i
+#      pnpm-workspace.yaml, som pnpm 9 ikke leser.
 #
-# Status (2026-05-27): Denne workflowen lever foreløpig i private-repo-
-# kopien `tools/n8n_nodes/`. Når Lars synker pakken til
-# `Tiwas/firmaradar-n8n` via `scripts/sync_n8n_public.sh`, blir filen
-# liggende i public-repo der GitHub Actions faktisk kan trigge på tag.
+# Historikk: første forsøk på v0.7.0 (run 30187867223) feilet på pnpm 9 sitt
+# krav om `packages:` i pnpm-workspace.yaml — før publish-steget, så ingenting
+# ble publisert.
+#
+# Denne fila lever i private-repo-kopien `tools/n8n_nodes/` og speiles til
+# `Tiwas/firmaradar-n8n` av `scripts/sync_n8n_public.sh`, der GitHub Actions
+# faktisk kan trigge på tag.
 
 name: Publish to npm
 
@@ -48,17 +52,39 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 🪤 pnpm MÅ være 11+. Overridene som lukker Dependabot-varslene bor i
+      # `pnpm-workspace.yaml` (flyttet dit i d4d4ed85 fordi pnpm 11 ikke lenger
+      # leser `pnpm.overrides` i package.json — det feltet er BORTE derfra).
+      # pnpm 9 gjør da to ting galt: (1) den krever et `packages:`-felt i
+      # pnpm-workspace.yaml og feiler med «packages field missing or empty» i
+      # `pnpm store path` (observert 2026-07-26), og (2) selv uten den feilen
+      # ville den ignorert overridene helt — altså installert UTEN
+      # sikkerhets-pinnene, stille. Å legge til `packages: ['.']` ville "fikset"
+      # feilmeldingen og beholdt nettopp den stille regresjonen. Ikke gjør det.
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
 
-      - name: Setup Node.js 20
+      # 🪤 Node MÅ være 22.14+ og npm MÅ være 11.5.1+ for at Trusted Publishing
+      # (OIDC) skal virke — se npm-docs «Trusted Publishers». Node 20 ga npm
+      # 10.8.2, som er under kravet: publiseringen ville da falt tilbake til
+      # tokenet og SETT grønn ut uten at OIDC var i bruk.
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           registry-url: 'https://registry.npmjs.org/'
           cache: 'pnpm'
+
+      # Node 22 leverer npm ~10.9 — under 11.5.1-kravet. Oppgrader eksplisitt,
+      # og skriv versjonen i loggen så det er etterprøvbart hvilken vei
+      # publiseringen tok.
+      - name: Upgrade npm for OIDC support
+        run: |
+          npm install -g npm@latest
+          echo "npm: $(npm --version)  (Trusted Publishing krever >= 11.5.1)"
+          echo "node: $(node --version)  (krever >= 22.14.0)"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -84,10 +110,17 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'true'
         run: npm publish --provenance --access public --dry-run
 
+      # 🪤 INGEN NODE_AUTH_TOKEN her — med vilje. npm oppdager OIDC-miljøet selv
+      # og bruker det. Er tokenet satt, kan npm bruke DET i stedet, og da er en
+      # grønn kjøring ikke noe bevis for at Trusted Publishing virker. Vi vil at
+      # OIDC skal være den ENESTE veien, slik at en feilkonfigurasjon feiler
+      # høyt her framfor å bli maskert.
+      # `NPM_TOKEN`-secreten står fortsatt på repoet som nødventil: skulle OIDC
+      # svikte, kan denne env-linja midlertidig legges tilbake.
+      # Provenance genereres AUTOMATISK ved trusted publishing (npm-docs), men
+      # flagget beholdes eksplisitt — det er korrekt i begge tilfeller.
       - name: Publish to npm
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run != 'true')
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --provenance --access public
 
       - name: Create GitHub release notes
