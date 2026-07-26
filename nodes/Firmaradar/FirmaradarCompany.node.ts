@@ -114,6 +114,18 @@ export class FirmaradarCompany implements INodeType {
                 displayName: 'Inkluder tilleggsfelt',
                 name: 'fields',
                 type: 'multiOptions',
+                // 🪤 Rekkefølgen håndheves av n8n-lint-regelen
+                // `node-param-multi-options-type-unsorted-items`, som sorterer med
+                // `localeCompare` UTEN eksplisitt locale — den arver altså
+                // kjøremiljøets. Det gjorde kravet SELVMOTSIGENDE for paret
+                // «Nylige endringer» / «Nøkkeltall (regnskap)»: målt 2026-07-26 gir
+                // en-US «Nøkkeltall» først (ø ≈ o), nb-NO gir «Nylige» først (ø
+                // etter z). Dev-maskinen har LANG=nb_NO.UTF-8, CI kjører en — så
+                // ingen rekkefølge kunne passere begge steder samtidig.
+                // Løst ved å fjerne tvetydigheten framfor å slå av regelen:
+                // «Nøkkeltall (regnskap)» → «Regnskap (nøkkeltall)», slik at ingen
+                // æøå står på en sorterings-grense. Verifisert stabil i BEGGE
+                // locales. Innfør ikke et navn der ø/æ/å avgjør rekkefølgen.
                 options: [
                     { name: 'BRREG-tildelinger', value: 'brreg_grants' },
                     { name: 'Eiere', value: 'owners' },
@@ -122,8 +134,8 @@ export class FirmaradarCompany implements INodeType {
                     { name: 'Immaterielle rettigheter (Patentstyret)', value: 'ip' },
                     { name: 'Konsernstruktur', value: 'group' },
                     { name: 'Nylige endringer', value: 'changes' },
-                    { name: 'Nøkkeltall (regnskap)', value: 'financial_metrics' },
                     { name: 'Offentlig støtte', value: 'grants' },
+                    { name: 'Regnskap (nøkkeltall)', value: 'financial_metrics' },
                 ],
                 default: [],
                 displayOptions: { show: { operation: ['get'] } },

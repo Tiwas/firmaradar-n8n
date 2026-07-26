@@ -70,12 +70,19 @@ jobs:
       # (OIDC) skal virke — se npm-docs «Trusted Publishers». Node 20 ga npm
       # 10.8.2, som er under kravet: publiseringen ville da falt tilbake til
       # tokenet og SETT grønn ut uten at OIDC var i bruk.
+      # 🪤 INGEN `cache:` her. npm-docs for Trusted Publishing er eksplisitt:
+      # «never use caching in release builds» — en forgiftet cache i nettopp den
+      # workflowen som PUBLISERER er en supply-chain-vektor. Bonus: det var
+      # cache-logikken som kalte `pnpm store path` og dermed utløste den første
+      # v0.7.0-feilen, så uten cache er hele det feilmodus borte.
+      # NB: `package-manager-cache: false` (som docs nevner) er et setup-node
+      # v6-input og ville blitt STILLE IGNORERT på v4. På v4 er det å utelate
+      # `cache:` den korrekte ekvivalenten.
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           registry-url: 'https://registry.npmjs.org/'
-          cache: 'pnpm'
 
       # Node 22 leverer npm ~10.9 — under 11.5.1-kravet. Oppgrader eksplisitt,
       # og skriv versjonen i loggen så det er etterprøvbart hvilken vei
