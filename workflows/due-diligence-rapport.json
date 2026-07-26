@@ -106,7 +106,8 @@
     {
       "parameters": {
         "operation": "checkAmlPep",
-        "orgnr": "={{ $json.orgnr }}",
+        "name": "={{ $json.navn }}",
+        "kategori": "sanksjon",
         "purpose": "kyc_review"
       },
       "name": "AML/PEP",
@@ -162,7 +163,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Slå sammen regnskap, AML og konsernstøtte til én rad per selskap\n// klar for Google Sheets.\nconst rows = [];\nfor (const item of items) {\n  const j = item.json || {};\n  const reg = j.regnskap || j.financials || {};\n  const aml = j.aml || j.aml_check || {};\n  const stotte = j.selskap_stotte || j.stotte || {};\n  rows.push({\n    json: {\n      orgnr: j.orgnr,\n      navn: j.navn,\n      depth: j.depth ?? null,\n      omsetning_nok: reg.driftsinntekter ?? reg.omsetning_nok ?? null,\n      resultat_nok: reg.aarsresultat ?? reg.resultat_nok ?? null,\n      aml_treff: Array.isArray(aml.matches) ? aml.matches.length : 0,\n      stotte_total_nok: stotte.total_belop_nok ?? 0,\n      stotte_innovasjon_norge: stotte.innovasjon_norge ?? 0,\n      stotte_skattefunn: stotte.skattefunn ?? 0,\n      stotte_andre: stotte.andre ?? 0,\n    },\n  });\n}\nreturn rows;"
+        "jsCode": "// Slå sammen regnskap, AML og konsernstøtte til én rad per selskap\n// klar for Google Sheets.\nconst rows = [];\nfor (const item of items) {\n  const j = item.json || {};\n  const reg = j.regnskap || j.financials || {};\n  const aml = j.aml || j.aml_check || {};\n  const stotte = j.selskap_stotte || j.stotte || {};\n  rows.push({\n    json: {\n      orgnr: j.orgnr,\n      navn: j.navn,\n      depth: j.depth ?? null,\n      omsetning_nok: reg.driftsinntekter ?? reg.omsetning_nok ?? null,\n      resultat_nok: reg.aarsresultat ?? reg.resultat_nok ?? null,\n      aml_treff: aml.hit_count ?? (Array.isArray(aml.hits) ? aml.hits.length : 0),\n      stotte_total_nok: stotte.total_belop_nok ?? 0,\n      stotte_innovasjon_norge: stotte.innovasjon_norge ?? 0,\n      stotte_skattefunn: stotte.skattefunn ?? 0,\n      stotte_andre: stotte.andre ?? 0,\n    },\n  });\n}\nreturn rows;"
       },
       "name": "Form rad for Sheets",
       "type": "n8n-nodes-base.code",

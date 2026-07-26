@@ -1,0 +1,19 @@
+# Transitive sikkerhets-pins (Dependabot GHSA-hmw2-7cc7-3qxx / GHSA-h67p-54hq-rp68).
+# Flyttet hit fra package.json sitt pnpm.overrides-felt — pnpm 11 leser ikke
+# det feltet lenger (overrides hører nå hjemme i pnpm-workspace.yaml).
+overrides:
+  form-data: ^4.0.6
+  js-yaml: ^4.3.0
+  # brace-expansion: DoS via eksponentiell regex-ekspansjon (GHSA-v6h2-p8h4-qcjw
+  # m.fl.). Kun dev-tooling (eslint→minimatch), null runtime-eksponering, men
+  # pinnet uansett. braceExpand-API-en er stabil på tvers av majors → global pin.
+  brace-expansion: '>=5.0.7'
+
+# Build-script-gate (pnpm 11, supply-chain-vern): pnpm kjører ikke en
+# avhengighets install-/build-script uten eksplisitt ja/nei. eslint-plugin-
+# n8n-nodes-base har et `preinstall: npx only-allow pnpm` vi ikke trenger (vi
+# bruker pnpm uansett) → satt til false (ikke kjør). Porten forblir AKTIV for
+# alle andre/fremtidige pakker: en ny avhengighet som vil kjøre kode under
+# install dukker opp her og tvinger en bevisst beslutning.
+allowBuilds:
+  eslint-plugin-n8n-nodes-base: false

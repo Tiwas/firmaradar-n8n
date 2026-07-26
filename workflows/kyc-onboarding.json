@@ -26,6 +26,10 @@
             {
               "name": "orgnr",
               "value": "={{ $json.body.orgnr || $json.orgnr }}"
+            },
+            {
+              "name": "kontaktperson",
+              "value": "={{ $json.body.kontaktperson || $json.kontaktperson }}"
             }
           ]
         },
@@ -43,7 +47,7 @@
     {
       "parameters": {
         "operation": "checkAmlPep",
-        "orgnr": "={{ $json.orgnr }}",
+        "name": "={{ $json.kontaktperson }}",
         "purpose": "kyc_onboarding"
       },
       "name": "AML/PEP-screening",
@@ -159,7 +163,7 @@
     {
       "parameters": {
         "channel": "#kyc-alerts",
-        "text": "=:rotating_light: *KYC-onboarding-varsel* — risiko: {{ $('Risikoscore').item.json.level }}\nOrgnr: `{{ $('Pakk ut orgnr').item.json.orgnr }}`\nScore: {{ $('Risikoscore').item.json.score }}/100\nAML-treff: {{ $('AML/PEP-screening').item.json.matches ? $('AML/PEP-screening').item.json.matches.length : 0 }}\nÅpne i Firmaradar: https://firmaradar.no/orgnr/{{ $('Pakk ut orgnr').item.json.orgnr }}",
+        "text": "=:rotating_light: *KYC-onboarding-varsel* — risiko: {{ $('Risikoscore').item.json.level }}\nOrgnr: `{{ $('Pakk ut orgnr').item.json.orgnr }}`\nScore: {{ $('Risikoscore').item.json.score }}/100\nAML-treff: {{ $('AML/PEP-screening').item.json.hit_count || 0 }}\nÅpne i Firmaradar: https://firmaradar.no/orgnr/{{ $('Pakk ut orgnr').item.json.orgnr }}",
         "otherOptions": {}
       },
       "name": "Slack — compliance-kanal",

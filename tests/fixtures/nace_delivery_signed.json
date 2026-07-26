@@ -1,0 +1,6 @@
+{
+    "description": "Kryss-språk-fixture for HMAC-verifisering. rawBody er nøyaktig hva Firmaradar-backendens nace_dispatcher._send_webhook sender (json.dumps(payload, ensure_ascii=False, sort_keys=True)), og signatureHex er HMAC-SHA256(signingSecret, rawBody) generert med Python — slik at testen fanger serialiserings-avvik mellom språkene, ikke bare selv-konsistens i Node.",
+    "signingSecret": "test-signing-secret",
+    "rawBody": "{\"announcement\": null, \"delivered_via\": \"nace_overvakning\", \"event_type\": \"created\", \"kommunenr\": \"0301\", \"nace_code\": \"47.110\", \"navn\": \"Eksempel Bakeri Ø AS\", \"orgnr\": \"923609016\"}",
+    "signatureHex": "7c3fb611aa9fbf33763ba49ffde9eebe52834be293a9741028b87d55d938f116"
+}

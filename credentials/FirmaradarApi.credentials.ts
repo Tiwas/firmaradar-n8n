@@ -56,7 +56,10 @@ export class FirmaradarApi implements ICredentialType {
     test: ICredentialTestRequest = {
         request: {
             baseURL: '={{$credentials.baseUrl}}',
-            url: '/api/v1/health/ping',
+            // Autentisert lett-oppslag — /api/v1/health/ping finnes ikke i
+            // backend, og et uautentisert endepunkt ville uansett ikke
+            // validert nøkkelen.
+            url: '/api/v1/companies/search?q=firmaradar&limit=1',
             method: 'GET',
         },
     };

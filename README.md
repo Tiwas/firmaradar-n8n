@@ -71,35 +71,55 @@ Samme legitimasjon gjenbrukes på tvers av alle Firmaradar-noder i alle arbeidsf
 
 ## Operasjoner
 
-**22 operasjoner**, organisert i fem node-typer for å holde n8n-paletten ryddig. Alle 22 speiler MCP v0.3-verktøyene 1:1 — samme endepunkt, samme auth, samme audit-trail (men trafikken tagges som `X-FR-Client: n8n` slik at rate-limit-tier og audit skiller n8n fra MCP-agenter).
+**21 operasjoner**, organisert i fem node-typer for å holde n8n-paletten ryddig. Alle speiler MCP-verktøyene — samme endepunkt, samme auth, samme audit-trail (men trafikken tagges som `X-FR-Client: n8n` slik at rate-limit-tier og audit skiller n8n fra MCP-agenter).
 
 | # | Node | Operasjon | API-endepunkt | v0.3-status |
 |---|---|---|---|---|
 | 1 | Selskap | Search companies | `GET /api/v1/companies/search` | v0.2 |
-| 2 | Selskap | Get company | `GET /api/v1/companies/{orgnr}` | v0.2 |
-| 3 | Selskap | Get ownership | `GET /api/v1/companies/{orgnr}/ownership` | v0.2 |
-| 4 | Selskap | Get roles | `GET /api/v1/companies/{orgnr}/roles` | v0.2 |
-| 5 | Selskap | Get financials | `GET /api/v1/companies/{orgnr}/financials` | v0.2 |
-| 6 | Selskap | Get announcements | `GET /api/v1/companies/{orgnr}/announcements` | v0.2 |
-| 7 | Selskap | Get signals | `GET /api/v1/companies/{orgnr}/signals` | v0.2 |
-| 8 | Selskap | Find related | `GET /api/v1/companies/{orgnr}/related` | v0.2 |
-| 9 | Person | Search persons | `GET /api/v1/persons/search` | v0.2 |
-| 10 | Person | Get person | `GET /api/v1/persons/{id}` | v0.2 |
-| 11 | Person | Get companies | `GET /api/v1/persons/{id}/companies` | v0.2 |
-| 12 | Person | Get roles | `GET /api/v1/persons/{id}/roles` | v0.2 |
-| 13 | KYC og AML | Check AML/PEP | `POST /api/v1/aml/check` | v0.2 |
-| 14 | KYC og AML | Get AML score | `POST /api/v1/aml/score` | **v0.3 (ny)** |
-| 15 | KYC og AML | Get risk score | `GET /api/v1/risikoscoring/score/{orgnr}` | **v0.3 (ny)** |
-| 16 | KYC og AML | Check foretak i vanskeligheter | `GET /api/v1/fiv/assess/{orgnr}` | **v0.3 (ny)** |
-| 17 | Bransje og overvåkning | List companies in NACE | `GET /api/v1/nace/{kode}/companies` | v0.2 |
-| 18 | Bransje og overvåkning | Get recent changes | `GET /api/v1/companies/{orgnr}/changes` | v0.2 |
-| 19 | Bransje og overvåkning | Search announcements | `GET /api/v1/announcements/search` | v0.2 |
-| 20 | Bransje og overvåkning | Compare companies | `POST /api/v1/companies/compare` | v0.2 |
-| 21 | Offentlige data | Get konsernstøtte | `GET /api/v1/konsernstotte/oversikt/{orgnr}` | **v0.3 (ny)** |
-| 22 | Offentlige data | Get konsernstøtte-historikk | `GET /api/v1/konsernstotte/historikk/{orgnr}` | **v0.3 (ny)** |
-| 23 | Offentlige data | Get skattelister (selskap) | `GET /api/v1/skattelister/selskap/{orgnr}` | **v0.3 (ny)** |
+| 2 | Selskap | Get company | `GET /api/v1/company/{orgnr}` | v0.2 |
+| 3 | Selskap | Get ownership | `GET /api/v1/company/{orgnr}/ownership` | v0.2 |
+| 4 | Selskap | Get roles | `GET /api/v1/company/{orgnr}/roles` | v0.2 |
+| 5 | Selskap | Get financials | `GET /api/regnskap/{orgnr}/historikk` | v0.2 |
+| 6 | Selskap | Get announcements | `GET /api/v1/company/{orgnr}/changes` | v0.2 |
+| 7 | Selskap | Get signals | `GET /api/v1/company/{orgnr}/signals` | v0.2 |
+| 8 | Selskap | Find related | `GET /api/v1/company/{orgnr}/related` | v0.2 |
+| 9 | Person | Search persons | `GET /api/v1/person/search` | v0.2 |
+| 10 | Person | Get companies | `GET /api/v1/person/shareholdings/{key}` | v0.2 |
+| 11 | Person | Get roles | `GET /api/v1/person/roles/{id}` | v0.2 |
+| 12 | KYC og AML | Check AML/PEP (person-navn + DPA-headere) | `POST /api/v1/aml/check` | v0.2 |
+| 13 | KYC og AML | Get AML score (utfaset — svarer 202 + rapport-id; poll med Get AML report) | `POST /api/v1/aml/score` | v0.3 (utfaset 2026-07-07) |
+| 14 | KYC og AML | Get risk score | `GET /api/v1/risikoscoring/score/{orgnr}` | **v0.3 (ny)** |
+| 15 | KYC og AML | Check foretak i vanskeligheter | `GET /api/v1/fiv/assess/{orgnr}` | **v0.3 (ny)** |
+| 16 | Bransje og overvåkning | List companies in NACE | `GET /api/v1/nace/{kode}/companies` | v0.2 |
+| 17 | Bransje og overvåkning | Get recent changes | `GET /api/v1/company/{orgnr}/changes` | v0.2 |
+| 18 | Bransje og overvåkning | Search announcements | `GET /api/v1/announcements/search` | v0.2 |
+| 19 | Bransje og overvåkning | Compare companies | `POST /api/v1/companies/compare` | v0.2 |
+| 20 | Offentlige data | Get konsernstøtte | `GET /api/v1/konsernstotte/oversikt/{orgnr}` | **v0.3 (ny)** |
+| 21 | Offentlige data | Get konsernstøtte-historikk | `GET /api/v1/konsernstotte/historikk/{orgnr}` | **v0.3 (ny)** |
 
-> Telling: 22 verktøy slik plan-dokumentet ramses opp (selskap 8 + person 4 + KYC 4 + bransje 4 + offentlige 3 = 23 rader, men `Get konsernstøtte` + `Get konsernstøtte-historikk` deler samme grunnverktøy i MCP-mapping — det er én logisk **operasjon** med to varianter når man teller mot MCP-tools-katalogen).
+> Telling: selskap 8 + person 3 + KYC 4 + bransje 4 + offentlige 2 = 21 rader. `Get konsernstøtte` + `Get konsernstøtte-historikk` deler samme grunnverktøy i MCP-mapping — én logisk **operasjon** med to varianter når man teller mot MCP-tools-katalogen.
+>
+> **v0.7.0:** alle endepunkt-paths rettet til de kanoniske rutene i `GET /api/openapi.yaml`
+> (flere pekte tidligere på ruter som ikke finnes i backend). «Get person» er fjernet —
+> operasjonen pekte på en rute som aldri har eksistert (person-profil er klient-side-
+> orkestrering i MCP-serveren); bruk Search persons + Get roles/Get companies.
+
+### Firmaradar Trigger (instant / webhook)
+Starter en arbeidsflyt **når noe skjer** — i stedet for å polle. Noden
+registrerer sin egen n8n-webhook-URL som callback hos Firmaradar ved
+aktivering og avbestiller ved deaktivering.
+- **Overvåk et selskap (orgnr)** — varsel ved kunngjøring, status-, eier- eller
+  tilskuddsendring for ett selskap.
+- **Overvåk en bransje (NACE)** — varsel når et selskap i NACE-koden endrer seg,
+  med hendelsestype-, geo- (fylke/kommune/landsdel) og størrelses-filtre.
+
+Valgfri **leverings-hemmelighet** sendes som `Authorization: Bearer` til
+n8n-webhooken — og noden **verifiserer den på mottak**: leveranser som mangler
+eller har feil hemmelighet droppes før arbeidsflyten starter. For
+bransje-overvåkning kan du i tillegg sette en **signerings-hemmelighet**; da
+HMAC-signerer Firmaradar hver leveranse (`X-Firmaradar-Signature`, SHA-256
+over rå body) og noden dropper leveranser med ugyldig signatur. Krever
+`firmaovervåkning` på kontoen.
 
 ### Firmaradar — Selskap
 - **Search companies** — søk på navn eller orgnr
@@ -112,9 +132,10 @@ Samme legitimasjon gjenbrukes på tvers av alle Firmaradar-noder i alle arbeidsf
 - **Find related** — finn relaterte selskaper via eierskap, roller eller adresse
 
 ### Firmaradar — Person
-- **Search persons** — navne-søk med toleranse for skrivefeil
-- **Get person** — profil med adresse og fødselsår
-- **Get companies** — alle selskaper personen eier eller har rolle i
+- **Search persons** — navne-søk med toleranse for skrivefeil; returnerer
+  nøklene som person-oppslagene bruker (`shareholders[].id` for eierskap,
+  `role_persons[].id` for roller)
+- **Get companies** — aksjebeholdninger med eierandeler og aksjeverdier
 - **Get roles** — aktive og historiske roller
 
 ### Firmaradar — KYC og AML
@@ -141,7 +162,6 @@ Operasjonene:
 
 - **Get konsernstøtte** *(v0.3)* — tre-struktur av konsernet med `selskap_stotte` per node + `konsern_aggregat` på roten. Slå på **«Flat ut treet»** for å få én n8n-item per selskap (rotnodens item inkluderer fortsatt `konsern_aggregat`) — lettere å mate inn i Sheets-, CSV- eller Loop-steg.
 - **Get konsernstøtte-historikk** *(v0.3)* — flat liste over enkelt-tildelinger med kilde-filter (Innovasjon Norge / SkatteFUNN / Andre) og pagination.
-- **Get skattelister (selskap)** *(v0.3)* — inntekt, formue og skatt per skatteår. **Krever full tilgang** og audit-logges per oppslag.
 
 ---
 
@@ -215,7 +235,7 @@ Hele sikkerhets-policyen: [firmaradar.no/personvern](https://firmaradar.no/perso
 
 ## Versjons-historikk
 
-- **0.3.0** — Speiler MCP v0.3. 22 operasjoner totalt: legger til AML-score, risikoscoring, FIV-sjekk, skattelister, konsernstøtte (oversikt + historikk) på toppen av v0.2-grunnlaget. Bytter klient-header til `X-FR-Client: n8n`, slipper provenance-publisering via npm OIDC, og leverer ferdige workflow-eksempler for KYC-onboarding, due-diligence-rapport og NACE-overvåkning. (Initial offentlige release på npm.)
+- **0.3.0** — Speiler MCP v0.3. 22 operasjoner totalt: legger til AML-score, risikoscoring, FIV-sjekk, konsernstøtte (oversikt + historikk) på toppen av v0.2-grunnlaget. Bytter klient-header til `X-FR-Client: n8n`, slipper provenance-publisering via npm OIDC, og leverer ferdige workflow-eksempler for KYC-onboarding, due-diligence-rapport og NACE-overvåkning. (Initial offentlige release på npm.)
 - **0.1.0** — Internt skjelett. Ikke publisert til npm. 17 operasjoner mot v0.2 — overskredet av 0.3.0.
 
 Se [CHANGELOG.md](CHANGELOG.md) for full historikk per release.

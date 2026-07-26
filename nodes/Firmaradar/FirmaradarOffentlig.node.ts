@@ -9,9 +9,7 @@ import {
 /**
  * Firmaradar — Offentlige data
  *
- * Operasjoner: getKonsernstotte, getKonsernstotteHistorikk, getSkattelisterSelskap.
- * Tilgangskrav varierer per operasjon (skattelister krever
- * full_ownership).
+ * Operasjoner: getKonsernstotte, getKonsernstotteHistorikk.
  *
  * Konsernstøtte-respons (post #134, 2026-05-27):
  *   Tre-struktur av selskaper i konsernet. Per node finnes ``selskap_stotte``
@@ -30,7 +28,7 @@ export class FirmaradarOffentlig implements INodeType {
         group: ['transform'],
         version: 1,
         subtitle: '={{$parameter["operation"]}}',
-        description: 'Konsernstøtte (selskap_stotte + konsern_aggregat) og skattelister (inntekt/formue/skatt)',
+        description: 'Konsernstøtte (selskap_stotte + konsern_aggregat)',
         defaults: { name: 'Firmaradar Offentlige data' },
         inputs: ['main'],
         outputs: ['main'],
@@ -51,11 +49,6 @@ export class FirmaradarOffentlig implements INodeType {
                         name: 'Hent konsernstøtte-historikk',
                         value: 'getKonsernstotteHistorikk',
                         action: 'Flat liste over enkelt-tildelinger med filter og pagination',
-                    },
-                    {
-                        name: 'Hent skattelister (selskap)',
-                        value: 'getSkattelisterSelskap',
-                        action: 'Inntekt, formue, skatt — krever full tilgang',
                     },
                 ],
                 default: 'getKonsernstotte',
@@ -90,14 +83,6 @@ export class FirmaradarOffentlig implements INodeType {
                 default: '',
                 displayOptions: { show: { operation: ['getKonsernstotteHistorikk'] } },
             },
-            {
-                displayName: 'Skatteår',
-                name: 'ar',
-                type: 'number',
-                default: 0,
-                displayOptions: { show: { operation: ['getSkattelisterSelskap'] } },
-                description: 'Valgfritt: filtrer på ett spesifikt skatteår (0 = alle år)',
-            },
         ],
     };
 
@@ -120,11 +105,6 @@ export class FirmaradarOffentlig implements INodeType {
                 case 'getKonsernstotteHistorikk':
                     path = `/api/v1/konsernstotte/historikk/${orgnr}`;
                     qs = { kilde: this.getNodeParameter('kilde', i) || undefined };
-                    break;
-                case 'getSkattelisterSelskap':
-                    path = `/api/v1/skattelister/selskap/${orgnr}`;
-                    const ar = this.getNodeParameter('ar', i) as number;
-                    if (ar > 0) qs = { ar };
                     break;
                 default:
                     throw new Error(`Ukjent operasjon: ${operation}`);

@@ -9,8 +9,15 @@ import {
 /**
  * Firmaradar — Person
  *
- * Operasjoner: search, get, getCompanies, getRoles.
+ * Operasjoner: search, getCompanies, getRoles.
  * Krever full_ownership-tilgang siden person-data er sensitivt.
+ *
+ * v0.7.0: rettet til kanoniske API-paths. «Hent person» er fjernet —
+ * operasjonen pekte på en rute som aldri har eksistert i backend
+ * (person-profilen er klient-side-orkestrering i MCP-serveren). Bruk
+ * «Søk personer» + «Hent roller»/«Hent selskaper» i stedet. Merk at
+ * rolle-oppslag og eierskaps-oppslag bruker HVER SIN nøkkel fra
+ * søkeresultatet (role_persons[].id vs shareholders[].id).
  */
 export class FirmaradarPerson implements INodeType {
     description: INodeTypeDescription = {
@@ -33,9 +40,8 @@ export class FirmaradarPerson implements INodeType {
                 noDataExpression: true,
                 options: [
                     { name: 'Søk personer', value: 'search', action: 'Navne-søk med skrivefeil-toleranse' },
-                    { name: 'Hent person', value: 'get', action: 'Hent person-profil' },
-                    { name: 'Hent selskaper', value: 'getCompanies', action: 'Hent selskaper personen eier eller har rolle i' },
                     { name: 'Hent roller', value: 'getRoles', action: 'Hent aktive og historiske roller' },
+                    { name: 'Hent selskaper', value: 'getCompanies', action: 'Hent selskaper personen eier aksjer i' },
                 ],
                 default: 'search',
             },
@@ -49,13 +55,22 @@ export class FirmaradarPerson implements INodeType {
                 description: 'Personens navn (full-tekst, fuzzy matching)',
             },
             {
-                displayName: 'Person-ID',
-                name: 'personId',
+                displayName: 'Rolle-person-ID',
+                name: 'rolePersonId',
                 type: 'string',
                 default: '',
                 required: true,
-                displayOptions: { show: { operation: ['get', 'getCompanies', 'getRoles'] } },
-                description: 'Person-ID fra et søk eller eierskap-oppslag',
+                displayOptions: { show: { operation: ['getRoles'] } },
+                description: 'Stabil rolle-person-nøkkel fra «Søk personer»-svarets role_persons-liste',
+            },
+            {
+                displayName: 'Eier-person-nøkkel',
+                name: 'ownerPersonKey',
+                type: 'string',
+                default: '',
+                required: true,
+                displayOptions: { show: { operation: ['getCompanies'] } },
+                description: 'Stabil eier-person-nøkkel fra «Søk personer»-svarets shareholders-liste',
             },
         ],
     };
@@ -71,24 +86,23 @@ export class FirmaradarPerson implements INodeType {
             let path: string;
             let qs: IDataObject = {};
 
-            if (operation === 'search') {
-                path = '/api/v1/search/persons';
-                qs = { q: this.getNodeParameter('name', i) };
-            } else {
-                const personId = this.getNodeParameter('personId', i) as string;
-                switch (operation) {
-                    case 'get':
-                        path = `/api/v1/person/${personId}`;
-                        break;
-                    case 'getCompanies':
-                        path = `/api/v1/person/${personId}/companies`;
-                        break;
-                    case 'getRoles':
-                        path = `/api/v1/person/${personId}/roles`;
-                        break;
-                    default:
-                        throw new Error(`Ukjent operasjon: ${operation}`);
-                }
+            switch (operation) {
+                case 'search':
+                    path = '/api/v1/person/search';
+                    qs = { q: this.getNodeParameter('name', i) };
+                    break;
+                case 'getRoles':
+                    path = `/api/v1/person/roles/${encodeURIComponent(
+                        this.getNodeParameter('rolePersonId', i) as string,
+                    )}`;
+                    break;
+                case 'getCompanies':
+                    path = `/api/v1/person/shareholdings/${encodeURIComponent(
+                        this.getNodeParameter('ownerPersonKey', i) as string,
+                    )}`;
+                    break;
+                default:
+                    throw new Error(`Ukjent operasjon: ${operation}`);
             }
 
             const response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {

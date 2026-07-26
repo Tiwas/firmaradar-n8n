@@ -102,13 +102,17 @@ export class FirmaradarBransje implements INodeType {
         for (let i = 0; i < items.length; i++) {
             const operation = this.getNodeParameter('operation', i) as string;
             let path: string;
+            let method: 'GET' | 'POST' = 'GET';
             let qs: IDataObject = {};
+            let body: IDataObject | undefined;
 
             switch (operation) {
                 case 'listInNace':
-                    path = '/api/v1/nace/companies';
+                    // Kanonisk rute har koden i pathen, ikke som query-param.
+                    path = `/api/v1/nace/${encodeURIComponent(
+                        this.getNodeParameter('naceCode', i) as string,
+                    )}/companies`;
                     qs = {
-                        nace: this.getNodeParameter('naceCode', i),
                         kommune: this.getNodeParameter('kommune', i) || undefined,
                     };
                     break;
@@ -121,17 +125,25 @@ export class FirmaradarBransje implements INodeType {
                     qs = { q: this.getNodeParameter('query', i) };
                     break;
                 case 'compareCompanies':
+                    // Backend krever POST med JSON-body (GET gir 405).
                     path = '/api/v1/companies/compare';
-                    qs = { orgnrs: (this.getNodeParameter('orgnrs', i) as string).split(/,\s*/).join(',') };
+                    method = 'POST';
+                    body = {
+                        orgnrs: (this.getNodeParameter('orgnrs', i) as string)
+                            .split(/[\s,;]+/)
+                            .map((part) => part.trim())
+                            .filter((part) => part.length > 0),
+                    };
                     break;
                 default:
                     throw new Error(`Ukjent operasjon: ${operation}`);
             }
 
             const response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
-                method: 'GET',
+                method,
                 url: `${baseUrl}${path}`,
                 qs,
+                body,
                 json: true,
             });
             returnData.push({ json: response as IDataObject });

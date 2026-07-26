@@ -121,8 +121,8 @@ export class FirmaradarCompany implements INodeType {
                     { name: 'Eiere (virksomhet)', value: 'business_owners' },
                     { name: 'Immaterielle rettigheter (Patentstyret)', value: 'ip' },
                     { name: 'Konsernstruktur', value: 'group' },
-                    { name: 'Nøkkeltall (regnskap)', value: 'financial_metrics' },
                     { name: 'Nylige endringer', value: 'changes' },
+                    { name: 'Nøkkeltall (regnskap)', value: 'financial_metrics' },
                     { name: 'Offentlig støtte', value: 'grants' },
                 ],
                 default: [],
@@ -222,7 +222,7 @@ export class FirmaradarCompany implements INodeType {
             if (operation === 'search') {
                 const query = this.getNodeParameter('query', i) as string;
                 const limit = this.getNodeParameter('limit', i) as number;
-                path = '/api/v1/search/companies';
+                path = '/api/v1/companies/search';
                 qs = { q: query, limit };
             } else {
                 const orgnr = this.getNodeParameter('orgnr', i) as string;
@@ -251,16 +251,21 @@ export class FirmaradarCompany implements INodeType {
                         };
                         break;
                     case 'getFinancials':
-                        path = `/api/v1/company/${orgnr}/financials`;
+                        // Kanonisk regnskaps-rute er legacy-pathen utenfor /api/v1
+                        // (samme som MCP/portal bruker) — /company/{orgnr}/financials
+                        // finnes ikke i backend.
+                        path = `/api/regnskap/${orgnr}/historikk`;
                         qs = { years: this.getNodeParameter('years', i) };
                         break;
                     case 'getIp':
                         // IP-portefølje fra Patentstyret (patenter/varemerker/design).
-                        path = `/api/v1/company/${orgnr}`;
-                        qs = { ip: 1 };
+                        // Dedikert /ip-rute (renere enn ?ip=1 på Get Company).
+                        path = `/api/v1/company/${orgnr}/ip`;
                         break;
                     case 'getAnnouncements':
-                        path = `/api/v1/company/${orgnr}/announcements`;
+                        // /announcements er kun dokumentasjons-alias i openapi —
+                        // den ekte ruta er /changes (samme payload).
+                        path = `/api/v1/company/${orgnr}/changes`;
                         break;
                     case 'getSignals':
                         path = `/api/v1/company/${orgnr}/signals`;

@@ -7,6 +7,104 @@ og prosjektet bruker [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+## [0.7.0] — 2026-07-16
+
+### Fixed
+
+- **Rettet døde API-paths — flere operasjoner traff ruter som ikke finnes i
+  backend** (verifisert mot prod 2026-07-16; funnet under byggingen av
+  Activepieces-piecen, som brukte openapi-kontrakten som fasit):
+  - `Selskap.Søk selskaper`: `/api/v1/search/companies` → kanonisk
+    `GET /api/v1/companies/search`.
+  - `Selskap.Hent kunngjøringer`: `/company/{orgnr}/announcements` → kanonisk
+    `/company/{orgnr}/changes` (announcements-pathen er kun
+    dokumentasjons-alias i openapi).
+  - `Selskap.Hent regnskap`: `/company/{orgnr}/financials` → kanonisk
+    `GET /api/regnskap/{orgnr}/historikk`.
+  - `Person.Søk personer`: `/api/v1/search/persons` → kanonisk
+    `/api/v1/person/search`.
+  - `Person.Hent roller`: `/person/{id}/roles` → kanonisk
+    `/api/v1/person/roles/{role_person_id}` (nøkkel fra søkets
+    `role_persons[].id`).
+  - `Person.Hent selskaper`: `/person/{id}/companies` → kanonisk
+    `/api/v1/person/shareholdings/{owner_person_key}` (nøkkel fra søkets
+    `shareholders[].id`).
+  - `Bransje.List selskaper i NACE`: `/api/v1/nace/companies?nace=` →
+    kanonisk `/api/v1/nace/{code}/companies`.
+  - `Bransje.Sammenlikne selskaper`: GET m/ query → kanonisk
+    `POST /api/v1/companies/compare` med JSON-body (`GET` ga 405).
+  - Credential-testen: `/api/v1/health/ping` (finnes ikke) → autentisert
+    `GET /api/v1/companies/search?q=firmaradar&limit=1`.
+- **`Sjekk AML/PEP` bruker nå riktig kontrakt.** Endepunktet
+  `POST /api/v1/aml/check` er PERSON-screening (`AmlCheckRequest`) — noden
+  sendte `{orgnr}` uten DPA-headerne og ble avvist. Nye felter: Navn
+  (påkrevd), Fødselsår, Kategori (begge/sanksjon/PEP), Minimum match-ratio;
+  DPA-headerne (`X-FR-Purpose` + `X-FR-DPA-Confirmed`) sendes som på
+  `Start AML-rapport`.
+
+### Removed
+
+- **«Hent skattelister (selskap)»-operasjonen** er fjernet fra
+  `Firmaradar — Offentlige data`. Konsernstøtte-operasjonene er uendret.
+- **`Person.Hent person` er fjernet.** Operasjonen pekte på en rute som
+  aldri har eksistert i backend (person-profilen er klient-side-
+  orkestrering i MCP-serveren) og har derfor aldri fungert. Bruk
+  `Søk personer` + `Hent roller`/`Hent selskaper`.
+
+### Changed
+
+- Eksempel-arbeidsflytene (`kyc-onboarding`, `due-diligence-rapport`) er
+  oppdatert til navnebasert AML-screening og `hit_count`-feltet i svaret.
+- «Hent IP-portefølje» bruker nå det dedikerte `/api/v1/company/{orgnr}/ip`-endepunktet
+  (renere enn `?ip=1` på Get Company). Uendret utdata (`ip_rettigheter`).
+- **`Hent AML-score` (`getAmlScore`) er utfaset og lagt om til async
+  rapport-flyt.** Backend-endepunktet `POST /api/v1/aml/score` er deprecert
+  (2026-07-07) og svarer nå `202 Accepted` med `rapport_id` + `poll_url`
+  (+ `deprecated: true`) i stedet for å blokkere til rapporten er ferdig.
+  Operasjonen sender nå DPA-headerne (`X-FR-Purpose` +
+  `X-FR-DPA-Confirmed`) som backend krever, og resultatet kjedes videre
+  med `Hent AML-rapport (poll)` til status er `done`/`failed`. Bruk
+  `Start AML-rapport (async)` + `Hent AML-rapport (poll)` i nye
+  arbeidsflyter.
+
+### Added
+
+- **`Firmaradar Trigger` — instant/webhook-trigger-node.** Første trigger i
+  pakken. Starter en arbeidsflyt når Firmaradar registrerer en hendelse:
+  - **Overvåk et selskap (orgnr)** — kunngjøring, status-, eier- eller
+    tilskuddsendring for ett selskap (`POST /api/v1/monitoring/webhooks`).
+  - **Overvåk en bransje (NACE)** — hendelser for alle selskap i en NACE-kode,
+    med hendelsestype-, geo- (fylke/kommune/landsdel) og størrelses-filtre
+    (`POST /api/v1/nace/subscriptions`).
+
+  Noden registrerer sin egen n8n-webhook-URL som callback ved aktivering og
+  avbestiller abonnementet (DELETE) ved deaktivering. Valgfri
+  leverings-hemmelighet sendes som `Authorization: Bearer` — og verifiseres
+  av noden på mottak: leveranser som mangler eller har feil hemmelighet
+  droppes før arbeidsflyten starter. For NACE kan i tillegg en
+  signerings-hemmelighet settes; da HMAC-signerer Firmaradar leveransene
+  (`X-Firmaradar-Signature`, SHA-256 over rå body) og noden dropper
+  leveranser med manglende eller ugyldig signatur
+  (`webhookVerification.ts`).
+- **Batch-agentiske operasjoner på `Firmaradar — KYC og AML`** — eksponerer de
+  samme mønstrene som MCP-serveren og Make-appen:
+  - **Bulk: foretak i vanskeligheter** (`checkFivBulk`) — FIV-screening av opptil
+    50 orgnr i ett kall (`POST /api/v1/fiv/bulk`). Per-orgnr compliance-gate
+    returneres som per-orgnr `error`; 1 enhet/orgnr mot kvoten.
+  - **Bulk: risikoscore** (`getRiskScoreBulk`) — risikoscore for opptil 50 orgnr
+    (`POST /api/v1/risikoscoring/score/bulk`).
+  - **Start AML-rapport (async)** (`startAmlReport`) — starter AML-rapport i
+    bakgrunnen (`POST /api/v1/aml/report` → `rapport_id` + status «pending»).
+    Sender DPA-headers (`X-FR-Purpose` + `X-FR-DPA-Confirmed: true`); rate-limit
+    50 kall / 30 min; rapport lagres i 60 mnd (Hvitvaskingsloven §35).
+  - **Hent AML-rapport (poll)** (`getAmlReport`) — poller async-rapport-status
+    (`GET /api/v1/aml/report/{report_id}`) til `done`/`failed`.
+  - Ny felt-input: `orgnrs` (komma/mellomrom/linjeskift-separert liste) for
+    bulk-operasjonene, `Rapport-ID` for polling, og `Hopp over ferskhets-sjekk`
+    for bulk-FIV. `Formål med oppslaget` gjelder nå også `startAmlReport`.
+
 ## [0.5.0] — 2026-06-19
 
 ### Added
