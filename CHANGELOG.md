@@ -9,6 +9,40 @@ og prosjektet bruker [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.8.0] — 2026-08-07
+
+### Added
+
+- **`Hent regnskapsrapport` (`getRegnskapsrapport`) — ny operasjon på
+  `Firmaradar — Selskap`.** Bestiller en ferdig formatert regnskapsrapport
+  (Excel eller PDF; samme builder som portalens
+  `/minbedrift/regnskap/<orgnr>/rapport.xlsx`/`.pdf`) via
+  `GET /api/v1/regnskapsrapport/{orgnr}` og returnerer metadata + et
+  kortlevd (~15 min), signert nedlastings-URL — **aldri** filen selv.
+  Skiller seg fra `Hent regnskap` (`getFinancials`), som gir rå tall til
+  videre beregning: denne operasjonen leverer et **ferdig dokument**
+  (samme oppsett/kildenote som en kunde ville lastet ned i portalen),
+  klart for arkivering/videresending. Ny felt-input: **Format**
+  (PDF/Excel), **Regnskapstype** (Selskap/Konsern) og **Antall
+  regnskapsår** (maks 5, håndhevet server-side). Krever `excel_feed`-
+  tilgang (xlsx) eller `print_til_pdf`-tilgang (pdf) på kontoen; koster
+  1 kreditt per levert regnskapsår.
+- **To-nivå FIV-vurdering (selskap + konsern) på `checkFiv`/`checkFivBulk`**
+  — jf. GBER (EU-forordning 651/2014) art. 2(18). FIV-vurderingen gjøres
+  nå på **to nivåer**; det er tilstrekkelig at ett av nivåene slår til.
+  Nye felter i responsen: `company_status` (selskaps-leddet alene, før
+  konsern-leddet ble lagt på), `distress_basis`
+  (`company`/`group`/`company_and_group`/`null`), `group_assessment`
+  (konsern-vurderingsobjekt: status, basis, rot-orgnr, medlemstall,
+  kapitaltapsandel), `rescuable_by_group` (boolean) og `rescue_estimate`
+  (hva konsernet må tilføre for å reparere kapitalkriteriet — nullable,
+  satt kun ved «Ja (!)»). `checkFivBulk` svarer med de samme feltene per
+  orgnr i `results[]`. Kundevendt status kan nå bli **«Ja (konsern)»**
+  (kun konsern-leddet trigget), **«Ja (!)»** (selskapet rødt alene, men
+  konsernet er verifisert friskt og kan reparere før godkjennings-
+  tidspunktet) eller **«Tvil»** (konsern-leddet kan ikke fastslås, f.eks.
+  fordi gratis BRREG-API ikke eksponerer konserndata).
+
 ## [0.7.0] — 2026-07-16
 
 ### Fixed

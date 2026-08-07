@@ -15,6 +15,7 @@ import {
  *   - getOwnership  — konsernhierarki opp og ned
  *   - getRoles      — styre, daglig leder, prokura
  *   - getFinancials — årsregnskap og nøkkeltall
+ *   - getRegnskapsrapport — ferdig formatert regnskapsrapport (Excel/PDF)
  *   - getAnnouncements — BRREG-kunngjøringer
  *   - getSignals    — risiko- og KYC-flagg
  *   - findRelated   — relaterte via eier, rolle eller adresse
@@ -22,6 +23,11 @@ import {
  * Hver operasjon mapper 1-til-1 til en MCP-tool i firmaradar-mcp-pakken.
  * Samme skjema på input + output, slik at arbeidsflyter kan migreres
  * mellom n8n og MCP uten datatap.
+ *
+ * getRegnskapsrapport skiller seg fra getFinancials: den returnerer IKKE
+ * rå tall til videre beregning, men bestiller et FERDIG DOKUMENT (samme
+ * builder som portal-eksporten) og svarer med metadata + et kortlevd
+ * (~15 min), signert nedlastings-URL — aldri filen selv.
  */
 export class FirmaradarCompany implements INodeType {
     description: INodeTypeDescription = {
@@ -55,6 +61,7 @@ export class FirmaradarCompany implements INodeType {
                     { name: 'Hent eierskap', value: 'getOwnership', action: 'Hent konsernhierarki opp og ned' },
                     { name: 'Hent roller', value: 'getRoles', action: 'Hent styre, daglig leder, prokura' },
                     { name: 'Hent regnskap', value: 'getFinancials', action: 'Hent årsregnskap og nøkkeltall' },
+                    { name: 'Hent regnskapsrapport (Excel/PDF)', value: 'getRegnskapsrapport', action: 'Bestill ferdig formatert regnskapsrapport' },
                     { name: 'Hent IP-portefølje', value: 'getIp', action: 'Hent patenter varemerker og design fra Patentstyret' },
                     { name: 'Hent kunngjøringer', value: 'getAnnouncements', action: 'Hent BRREG-kunngjøringer' },
                     { name: 'Hent signaler', value: 'getSignals', action: 'Hent risiko- og KYC-flagg' },
@@ -100,6 +107,7 @@ export class FirmaradarCompany implements INodeType {
                             'getOwnership',
                             'getRoles',
                             'getFinancials',
+                            'getRegnskapsrapport',
                             'getAnnouncements',
                             'getSignals',
                             'findRelated',
@@ -203,6 +211,41 @@ export class FirmaradarCompany implements INodeType {
                 displayOptions: { show: { operation: ['getFinancials'] } },
             },
 
+            // ── Regnskapsrapport-spesifikke (Excel/PDF-nedlasting) ─────
+            {
+                displayName: 'Format',
+                name: 'reportFormat',
+                type: 'options',
+                options: [
+                    { name: 'PDF', value: 'pdf' },
+                    { name: 'Excel (xlsx)', value: 'xlsx' },
+                ],
+                default: 'pdf',
+                displayOptions: { show: { operation: ['getRegnskapsrapport'] } },
+                description: 'PDF krever print_til_pdf-tilgang, Excel krever excel_feed-tilgang på kontoen',
+            },
+            {
+                displayName: 'Regnskapstype',
+                name: 'regnskapstype',
+                type: 'options',
+                options: [
+                    { name: 'Selskap', value: 'SELSKAP' },
+                    { name: 'Konsern', value: 'KONSERN' },
+                ],
+                default: 'SELSKAP',
+                displayOptions: { show: { operation: ['getRegnskapsrapport'] } },
+                description: 'Konsern gjelder kun selskaper som avlegger konsernregnskap',
+            },
+            {
+                displayName: 'Antall regnskapsår',
+                name: 'reportYears',
+                type: 'number',
+                typeOptions: { minValue: 1, maxValue: 5 },
+                default: 5,
+                displayOptions: { show: { operation: ['getRegnskapsrapport'] } },
+                description: 'Maks 5 regnskapsår, håndhevet server-side. Koster 1 kreditt per levert regnskapsår.',
+            },
+
             // ── Find related ───────────────────────────────────────────
             {
                 displayName: 'Relasjons-type',
@@ -268,6 +311,19 @@ export class FirmaradarCompany implements INodeType {
                         // finnes ikke i backend.
                         path = `/api/regnskap/${orgnr}/historikk`;
                         qs = { years: this.getNodeParameter('years', i) };
+                        break;
+                    case 'getRegnskapsrapport':
+                        // Ferdig FORMATERT DOKUMENT (Excel/PDF) — ikke rå tall til
+                        // videre beregning (se getFinancials for det). Svaret er
+                        // metadata + et kortlevd (~15 min), signert nedlastings-URL;
+                        // selve filen leveres aldri inline. Krever excel_feed-
+                        // (xlsx) eller print_til_pdf-tilgang (pdf) på kontoen.
+                        path = `/api/v1/regnskapsrapport/${orgnr}`;
+                        qs = {
+                            format: this.getNodeParameter('reportFormat', i),
+                            regnskapstype: this.getNodeParameter('regnskapstype', i),
+                            years: this.getNodeParameter('reportYears', i),
+                        };
                         break;
                     case 'getIp':
                         // IP-portefølje fra Patentstyret (patenter/varemerker/design).

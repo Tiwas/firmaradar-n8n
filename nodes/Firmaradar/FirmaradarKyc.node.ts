@@ -20,6 +20,18 @@ import {
  * med varsling ved høy risiko. Batch-operasjonene screener hele lister
  * (leverandører, kredittportefølje) i ett kall; async AML-rapport unngår
  * klient-timeout for store eier-trær.
+ *
+ * checkFiv/checkFivBulk vurderer FIV på to nivåer — selskap og konsern —
+ * jf. GBER (EU-forordning 651/2014) art. 2(18) §2.7. Svaret inkluderer nå
+ * company_status (selskaps-leddet alene), distress_basis (company/group/
+ * company_and_group/null), group_assessment (konsern-vurderingsobjekt),
+ * rescuable_by_group (boolean) og rescue_estimate (nullable) i tillegg
+ * til status/score. Feltene flyter uendret gjennom fra backend — denne
+ * noden filtrerer ikke output. Kundevendt status kan bli «Ja (konsern)»
+ * (kun konsern-leddet trigget), «Ja (!)» (selskapet rødt alene, men
+ * konsernet er verifisert friskt og kan reparere før godkjenningstids-
+ * punktet) eller «Tvil» (konsern-leddet kan ikke fastslås, f.eks. fordi
+ * gratis BRREG-API ikke eksponerer konserndata).
  */
 export class FirmaradarKyc implements INodeType {
     description: INodeTypeDescription = {
@@ -44,8 +56,8 @@ export class FirmaradarKyc implements INodeType {
                     { name: 'Sjekk AML/PEP', value: 'checkAmlPep', action: 'Sanksjons- og PEP-screening av en person (navn)' },
                     { name: 'Hent AML-score (utfaset — starter async rapport)', value: 'getAmlScore', action: 'Start AML-rapport (202 + rapport-id, poll videre)' },
                     { name: 'Hent risikoscore', value: 'getRiskScore', action: 'Generell risiko-vurdering' },
-                    { name: 'Sjekk foretak i vanskeligheter', value: 'checkFiv', action: 'FIV-status (a-e-regler)' },
-                    { name: 'Bulk: foretak i vanskeligheter', value: 'checkFivBulk', action: 'FIV-screening av opptil 50 orgnr' },
+                    { name: 'Sjekk foretak i vanskeligheter', value: 'checkFiv', action: 'FIV-status etter GBER art. 2(18), vurdert på selskap og konsern' },
+                    { name: 'Bulk: foretak i vanskeligheter', value: 'checkFivBulk', action: 'FIV-screening av opptil 50 orgnr (selskap+konsern)' },
                     { name: 'Bulk: risikoscore', value: 'getRiskScoreBulk', action: 'Risikoscore for opptil 50 orgnr' },
                     { name: 'Start AML-rapport (async)', value: 'startAmlReport', action: 'Start AML-rapport i bakgrunnen' },
                     { name: 'Hent AML-rapport (poll)', value: 'getAmlReport', action: 'Poll status/resultat for AML-rapport' },
@@ -241,6 +253,10 @@ export class FirmaradarKyc implements INodeType {
                     break;
 
                 case 'checkFiv':
+                    // To-nivå-test (GBER art. 2(18)): svaret inkluderer nå
+                    // company_status, distress_basis, group_assessment,
+                    // rescuable_by_group og rescue_estimate ved siden av
+                    // status/score/rules_fired — passthrough, ingen mapping her.
                     response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
                         method: 'GET',
                         url: `${baseUrl}/api/v1/fiv/assess/${this.getNodeParameter('orgnr', i)}`,
@@ -249,6 +265,9 @@ export class FirmaradarKyc implements INodeType {
                     break;
 
                 case 'checkFivBulk':
+                    // Samme to-nivå-felter som checkFiv, per orgnr i results[]
+                    // (company_status, distress_basis, group_assessment,
+                    // rescuable_by_group, rescue_estimate).
                     response = await this.helpers.requestWithAuthentication.call(this, 'firmaradarApi', {
                         method: 'POST',
                         url: `${baseUrl}/api/v1/fiv/bulk`,

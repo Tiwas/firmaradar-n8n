@@ -71,7 +71,7 @@ Samme legitimasjon gjenbrukes på tvers av alle Firmaradar-noder i alle arbeidsf
 
 ## Operasjoner
 
-**21 operasjoner**, organisert i fem node-typer for å holde n8n-paletten ryddig. Alle speiler MCP-verktøyene — samme endepunkt, samme auth, samme audit-trail (men trafikken tagges som `X-FR-Client: n8n` slik at rate-limit-tier og audit skiller n8n fra MCP-agenter).
+**22 operasjoner**, organisert i fem node-typer for å holde n8n-paletten ryddig. Alle speiler MCP-verktøyene — samme endepunkt, samme auth, samme audit-trail (men trafikken tagges som `X-FR-Client: n8n` slik at rate-limit-tier og audit skiller n8n fra MCP-agenter).
 
 | # | Node | Operasjon | API-endepunkt | v0.3-status |
 |---|---|---|---|---|
@@ -80,29 +80,35 @@ Samme legitimasjon gjenbrukes på tvers av alle Firmaradar-noder i alle arbeidsf
 | 3 | Selskap | Get ownership | `GET /api/v1/company/{orgnr}/ownership` | v0.2 |
 | 4 | Selskap | Get roles | `GET /api/v1/company/{orgnr}/roles` | v0.2 |
 | 5 | Selskap | Get financials | `GET /api/regnskap/{orgnr}/historikk` | v0.2 |
-| 6 | Selskap | Get announcements | `GET /api/v1/company/{orgnr}/changes` | v0.2 |
-| 7 | Selskap | Get signals | `GET /api/v1/company/{orgnr}/signals` | v0.2 |
-| 8 | Selskap | Find related | `GET /api/v1/company/{orgnr}/related` | v0.2 |
-| 9 | Person | Search persons | `GET /api/v1/person/search` | v0.2 |
-| 10 | Person | Get companies | `GET /api/v1/person/shareholdings/{key}` | v0.2 |
-| 11 | Person | Get roles | `GET /api/v1/person/roles/{id}` | v0.2 |
-| 12 | KYC og AML | Check AML/PEP (person-navn + DPA-headere) | `POST /api/v1/aml/check` | v0.2 |
-| 13 | KYC og AML | Get AML score (utfaset — svarer 202 + rapport-id; poll med Get AML report) | `POST /api/v1/aml/score` | v0.3 (utfaset 2026-07-07) |
-| 14 | KYC og AML | Get risk score | `GET /api/v1/risikoscoring/score/{orgnr}` | **v0.3 (ny)** |
-| 15 | KYC og AML | Check foretak i vanskeligheter | `GET /api/v1/fiv/assess/{orgnr}` | **v0.3 (ny)** |
-| 16 | Bransje og overvåkning | List companies in NACE | `GET /api/v1/nace/{kode}/companies` | v0.2 |
-| 17 | Bransje og overvåkning | Get recent changes | `GET /api/v1/company/{orgnr}/changes` | v0.2 |
-| 18 | Bransje og overvåkning | Search announcements | `GET /api/v1/announcements/search` | v0.2 |
-| 19 | Bransje og overvåkning | Compare companies | `POST /api/v1/companies/compare` | v0.2 |
-| 20 | Offentlige data | Get konsernstøtte | `GET /api/v1/konsernstotte/oversikt/{orgnr}` | **v0.3 (ny)** |
-| 21 | Offentlige data | Get konsernstøtte-historikk | `GET /api/v1/konsernstotte/historikk/{orgnr}` | **v0.3 (ny)** |
+| 6 | Selskap | Get regnskapsrapport (Excel/PDF) | `GET /api/v1/regnskapsrapport/{orgnr}` | **v0.8.0 (ny)** |
+| 7 | Selskap | Get announcements | `GET /api/v1/company/{orgnr}/changes` | v0.2 |
+| 8 | Selskap | Get signals | `GET /api/v1/company/{orgnr}/signals` | v0.2 |
+| 9 | Selskap | Find related | `GET /api/v1/company/{orgnr}/related` | v0.2 |
+| 10 | Person | Search persons | `GET /api/v1/person/search` | v0.2 |
+| 11 | Person | Get companies | `GET /api/v1/person/shareholdings/{key}` | v0.2 |
+| 12 | Person | Get roles | `GET /api/v1/person/roles/{id}` | v0.2 |
+| 13 | KYC og AML | Check AML/PEP (person-navn + DPA-headere) | `POST /api/v1/aml/check` | v0.2 |
+| 14 | KYC og AML | Get AML score (utfaset — svarer 202 + rapport-id; poll med Get AML report) | `POST /api/v1/aml/score` | v0.3 (utfaset 2026-07-07) |
+| 15 | KYC og AML | Get risk score | `GET /api/v1/risikoscoring/score/{orgnr}` | **v0.3 (ny)** |
+| 16 | KYC og AML | Check foretak i vanskeligheter — GBER art. 2(18), selskap+konsern | `GET /api/v1/fiv/assess/{orgnr}` | v0.3, **utvidet v0.8.0** |
+| 17 | Bransje og overvåkning | List companies in NACE | `GET /api/v1/nace/{kode}/companies` | v0.2 |
+| 18 | Bransje og overvåkning | Get recent changes | `GET /api/v1/company/{orgnr}/changes` | v0.2 |
+| 19 | Bransje og overvåkning | Search announcements | `GET /api/v1/announcements/search` | v0.2 |
+| 20 | Bransje og overvåkning | Compare companies | `POST /api/v1/companies/compare` | v0.2 |
+| 21 | Offentlige data | Get konsernstøtte | `GET /api/v1/konsernstotte/oversikt/{orgnr}` | **v0.3 (ny)** |
+| 22 | Offentlige data | Get konsernstøtte-historikk | `GET /api/v1/konsernstotte/historikk/{orgnr}` | **v0.3 (ny)** |
 
-> Telling: selskap 8 + person 3 + KYC 4 + bransje 4 + offentlige 2 = 21 rader. `Get konsernstøtte` + `Get konsernstøtte-historikk` deler samme grunnverktøy i MCP-mapping — én logisk **operasjon** med to varianter når man teller mot MCP-tools-katalogen.
+> Telling: selskap 9 + person 3 + KYC 4 + bransje 4 + offentlige 2 = 22 rader. `Get konsernstøtte` + `Get konsernstøtte-historikk` deler samme grunnverktøy i MCP-mapping — én logisk **operasjon** med to varianter når man teller mot MCP-tools-katalogen.
 >
 > **v0.7.0:** alle endepunkt-paths rettet til de kanoniske rutene i `GET /api/openapi.yaml`
 > (flere pekte tidligere på ruter som ikke finnes i backend). «Get person» er fjernet —
 > operasjonen pekte på en rute som aldri har eksistert (person-profil er klient-side-
 > orkestrering i MCP-serveren); bruk Search persons + Get roles/Get companies.
+>
+> **v0.8.0:** ny operasjon **Get regnskapsrapport** — bestiller en ferdig formatert
+> regnskapsrapport (Excel/PDF; metadata + kortlevd nedlastings-URL, ikke rå tall). Og
+> **Check foretak i vanskeligheter**/**Bulk: foretak i vanskeligheter** vurderer nå FIV
+> på to nivåer (selskap + konsern) etter GBER art. 2(18) — se egen seksjon under.
 
 ### Firmaradar Trigger (instant / webhook)
 Starter en arbeidsflyt **når noe skjer** — i stedet for å polle. Noden
@@ -127,6 +133,7 @@ over rå body) og noden dropper leveranser med ugyldig signatur. Krever
 - **Get ownership** — konsernhierarki opp og ned, eierandeler, person-nivå
 - **Get roles** — styre, daglig leder, prokura (med fratrådt-historikk)
 - **Get financials** — årsregnskap, nøkkeltall og signaler
+- **Get regnskapsrapport** *(v0.8.0)* — bestill en ferdig formatert regnskapsrapport (Excel eller PDF; samme oppsett og kildenote som portal-eksporten). Returnerer metadata + et kortlevd (~15 min), signert nedlastings-URL — aldri filen selv. Skiller seg fra **Get financials**: den gir rå tall til videre beregning, denne gir et ferdig dokument klart for arkivering/videresending. Krever Excel- eller PDF-eksport-tillegget (matcher valgt format) på kontoen; koster 1 kreditt per levert regnskapsår.
 - **Get announcements** — BRREG-kunngjøringer
 - **Get signals** — risikoflagg, KYC-flagg, insolvens
 - **Find related** — finn relaterte selskaper via eierskap, roller eller adresse
@@ -142,7 +149,17 @@ over rå body) og noden dropper leveranser med ugyldig signatur. Krever
 - **Check AML/PEP** — full AML/PEP-screening med sanksjonslister og revisjonsspor
 - **Get AML score** *(v0.3)* — strukturert risikoscore 0–100 + faktor-breakdown
 - **Get risk score** *(v0.3)* — generell risikoscore 0–100 + nivå
-- **Check foretak i vanskeligheter** *(v0.3)* — FIV-status (a–e-regler)
+- **Check foretak i vanskeligheter** *(v0.3, to-nivå-test v0.8.0)* — FIV-status etter
+  GBER (EU-forordning 651/2014) art. 2(18), kriterium a–e. Vurderes nå på **to nivåer**
+  — selskapet og konsernet det inngår i — det er tilstrekkelig at ett av nivåene slår
+  til. Svaret inkluderer `company_status`, `distress_basis`
+  (`company`/`group`/`company_and_group`), `group_assessment`, `rescuable_by_group`
+  og `rescue_estimate`. Kundevendt status kan bli **«Ja (konsern)»** (kun
+  konsern-leddet trigget), **«Ja (!)»** (selskapet rødt alene, men konsernet er
+  verifisert friskt og kan reparere før godkjenningstidspunktet) eller **«Tvil»**
+  (konsern-leddet kan ikke fastslås, f.eks. fordi gratis BRREG-API ikke eksponerer
+  konserndata). **Bulk: foretak i vanskeligheter** svarer med de samme feltene per
+  orgnr i `results[]`.
 
 ### Firmaradar — Bransje og overvåkning
 - **List companies in NACE** — alle selskaper i en NACE-kode med geografisk filter

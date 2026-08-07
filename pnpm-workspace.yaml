@@ -5,9 +5,11 @@ overrides:
   form-data: ^4.0.6
   js-yaml: ^4.3.0
   # brace-expansion: DoS via eksponentiell regex-ekspansjon (GHSA-v6h2-p8h4-qcjw
-  # m.fl.). Kun dev-tooling (eslint→minimatch), null runtime-eksponering, men
-  # pinnet uansett. braceExpand-API-en er stabil på tvers av majors → global pin.
-  brace-expansion: '>=5.0.7'
+  # m.fl.); 5.0.9 tetter i tillegg GHSA-rgw5-rvv9-x895 (ubegrensede mellom-arrays
+  # som omgikk CVE-2026-14257-mitigeringen). Kun dev-tooling (eslint→minimatch),
+  # null runtime-eksponering, men pinnet uansett. braceExpand-API-en er stabil på
+  # tvers av majors → global pin.
+  brace-expansion: '>=5.0.9'
 
 # Build-script-gate (pnpm 11, supply-chain-vern): pnpm kjører ikke en
 # avhengighets install-/build-script uten eksplisitt ja/nei. eslint-plugin-
